@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0a0a0a">
-    <title>Select Location — Sales Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="favicon.ico">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Action Group">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>The Action Group Tracker</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
@@ -30,21 +36,22 @@
         .page { max-width:860px; margin:0 auto; padding:0 20px 90px; position:relative; z-index:2; }
 
         /* ── neutral hero ── */
-        .hero { padding:54px 0 36px; text-align:center; }
-        .hero-eyebrow {
-            font-family:'Oswald',sans-serif; font-size:11px; font-weight:600;
-            letter-spacing:.35em; text-transform:uppercase; color:var(--muted);
+        .hero { padding:44px 0 34px; text-align:center; }
+        .hero-logo {
+            width:clamp(120px,26vw,168px); height:auto; display:block; margin:0 auto 18px;
+            filter:drop-shadow(0 6px 24px rgba(255,255,255,.07));
+        }
+        .hero-title {
+            font-family:'Bebas Neue',sans-serif; font-size:clamp(38px,7.5vw,62px);
+            line-height:.95; letter-spacing:3px; color:#fff;
+        }
+        .hero-title .ht-light { color:var(--muted); }
+        .hero-sub {
+            color:var(--muted); font-size:12px; margin-top:12px;
+            font-family:'Oswald',sans-serif; letter-spacing:.22em; text-transform:uppercase;
             display:inline-flex; align-items:center; gap:12px;
         }
-        .hero-eyebrow::before, .hero-eyebrow::after { content:''; width:28px; height:1px; background:var(--wire2); }
-        .hero-title {
-            font-family:'Bebas Neue',sans-serif; font-size:clamp(50px,9.5vw,80px);
-            line-height:.95; letter-spacing:3px; margin-top:12px; color:#fff;
-        }
-        .hero-sub {
-            color:var(--muted); font-size:12px; margin-top:10px;
-            font-family:'Oswald',sans-serif; letter-spacing:.18em; text-transform:uppercase;
-        }
+        .hero-sub::before, .hero-sub::after { content:''; width:26px; height:1px; background:var(--wire2); }
 
         /* ── branded tiles: big 2×2 ── */
         .loc-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:18px; }
@@ -186,9 +193,9 @@
 <body>
 <div class="page">
     <div class="hero">
-        <div class="hero-eyebrow">Sales Command</div>
-        <div class="hero-title">SELECT YOUR LOCATION</div>
-        <div class="hero-sub">Four branches · One mission</div>
+        <img src="ag-logo.png" alt="The Action Group — Tactical Training for the Trades" class="hero-logo">
+        <div class="hero-title">THE ACTION GROUP <span class="ht-light">TRACKER</span></div>
+        <div class="hero-sub">Select your location</div>
     </div>
 
     <div class="loc-grid" id="locGrid">
@@ -691,6 +698,8 @@
         $('azDryBtn').disabled = false;
         azStatus(); runBattle();
     }
+
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
     $('azDryBtn').addEventListener('click', () => azDry().catch(e => azlog('ERROR: ' + e.message, 'err')));
     $('azRunBtn').addEventListener('click', () => azRun().catch(e => azlog('ERROR: ' + e.message, 'err')));

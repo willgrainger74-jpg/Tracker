@@ -1,73 +1,63 @@
-ACTION ARMY — MULTI-LOCATION  (v7)
-===================================
-New in v7: the Arizona data from the Manus "Action Hub" app is scraped,
-remapped to this tracker's schema, and importable from locations.html.
+THE ACTION GROUP TRACKER  (v8)
+===============================
+New in v8: Action Group branding on the location hub + the whole thing
+installs to a phone home screen as "Action Group" with the AG badge icon.
 
-IMPORTING ARIZONA (from Manus)
--------------------------------
-locations.html -> Manage -> "Import Manus Hub -> Arizona"
-  Dry Run (read-only) -> Import For Real (manager PIN).
+THE HUB (locations.html)
+-------------------------
+  AG badge logo, then "THE ACTION GROUP TRACKER", then "Select your
+  location" over the four tiles. Neutral black & white - the branding
+  only changes once you pick a location.
 
-  Snapshot contents (verified against live Manus data):
-    422 calls, 2026-03-12 -> 2026-07-08
-    $1,083,848 in sales
-    9 reps: Theron Leany, Danny Condon, Joe Jordan, Steve Lauaki,
-            Ben Jordan, Austin Avellar, House Account (AZ),
-            + 2 deleted techs (imported archived, revenue still counts)
-    personal weekly/monthly/yearly goals for the 6 active techs
-    team yearly goal 2026: $8,000,000
-  449 paths, 3 batches.
+ADD TO HOME SCREEN
+------------------
+  iPhone/Safari : open the tracker -> Share -> Add to Home Screen
+  Android/Chrome: open the tracker -> menu -> Install app / Add to Home screen
+  It installs as "Action Group" with the AG badge, opens full screen
+  (no browser bars), and long-pressing the icon gives a "Switch Location"
+  shortcut on Android.
 
-  WHY A SNAPSHOT FILE? The Manus API sends no CORS headers, so a browser
-  on github.io can't read it directly. The data was pulled server-side
-  and pre-mapped into arizona-import.json. It is a point-in-time copy
-  (pulled 2026-07-15). If Arizona keeps logging in Manus after that,
-  the newer calls won't be in this file - ask for a fresh pull.
+  If you already had the old Action Tracker installed, DELETE it from the
+  home screen and re-add it - phones cache the old icon and name hard.
+  (The service worker cache was bumped to action-group-v3 to help.)
 
-  The Manus app is never modified. Re-running skips anything already
-  imported. Call IDs are the Manus IDs, so no duplicates.
+ICONS
+-----
+  Every icon-*.png + favicon.ico regenerated from the AG badge:
+  white badge on #080808, sized to 80% of the frame so the outer ring
+  stays inside the maskable safe zone (Android crops icons to a circle
+  or squircle - a full-bleed circular badge would lose its edge).
+  ag-logo.png is the transparent version used in the hub hero.
+  actionsite-logo.png is untouched - Utah/Arizona pages still use it.
 
-FIELD MAPPING NOTES (Manus -> Action)
---------------------------------------
-  saleAmount/paymentAmount/estimateAmount were in CENTS -> divided by 100
-  tech goals were already in DOLLARS -> copied as-is
-  outcome sold/estimate/open/cancelled -> jobSold / leftEstimate / jobCancelled
-  trades[] -> tradeHVAC / tradePlumbing / tradeElectrical / tradeCameras
-  createdAt (UTC) -> timeOfDay converted to Arizona time (MST, UTC-7)
-  each call carries importedFrom:"manus" so imports are traceable
-  NOT imported: door knocks (Manus stores aggregate counts, this tracker
-    stores per-address canvassing records - the shapes don't map),
-    notes, optionsPresented, estimatesWritten, ServiceTitan checkboxes
-    (no equivalent fields here)
-  moneyOwed set to 0 rather than inferred from payments
+  Replacing the logo later: drop in a new ag-logo.png and new icon-*.png
+  files. Nothing else references them by anything but filename.
 
-IMPORTING ANYWHERE ROOTER -> COLORADO
---------------------------------------
-locations.html -> Manage -> "Import Anywhere Rooter -> Colorado"
-  (Already done - 13 Colorado reps are in the roster.)
+MANIFEST
+--------
+  name       : The Action Group Tracker
+  short_name : Action Group
+  start_url  : index.html  (returning users land in their location;
+               first-timers get bounced to the hub automatically)
+  scope      : ./          (relative now, so it works under any repo name,
+               unlike the old hardcoded /action-sales/ paths)
 
 INSTALL
 -------
-1. Upload EVERYTHING in here to the repo root (arizona-import.json
-   included - the importer fetches it from there).
+1. Upload EVERYTHING here to the repo root, replacing the old icon-*.png,
+   favicon.ico, manifest.json and sw.js.
 2. Hard-refresh once.
-3. locations.html -> Manage -> run the Arizona import.
-4. Create logins for the Arizona reps (Manager Portal -> Tech Logins),
-   assign them to Arizona, and set Arizona's team yearly goal if you
-   want something other than the imported $8,000,000.
+3. Delete + re-add the home screen app to pick up the new icon and name.
 
-WHAT EACH LOCATION OWNS
-------------------------
-  Reps, logins, team yearly goal - per-location.
-  Team monthly goal computes itself from that branch's reps' goals.
-  Utah and Arizona are as separate as Colorado and Idaho - same look,
-  different data.
+EVERYTHING ELSE (unchanged from v7)
+------------------------------------
+  Four locations: Action Utah, Action Arizona, Anywhere Rooter (Colorado),
+  American Rooter & Drain (Idaho). Separate reps, logins and team goals;
+  Utah/Arizona share the Action look. Location Battle on the hub.
+  Manage panel: rep + login assignment, team yearly goals, the
+  Anywhere Rooter -> Colorado import, and the Manus -> Arizona import
+  (422 calls / $1,083,848 / 9 reps, from arizona-import.json).
+  Brand engine: BRANDS config at the top of location-filter.js.
   Still shared by all four: announcements, monthlyCompetition,
   competitionMeta, competitionFeed, commissionRate, commissionTiers,
-  huddleSummaries. (Add to SCOPED_PATHS in location-filter.js - one line.)
-
-BRANDS
-------
-  BRANDS config at the top of location-filter.js = logo, colors, font,
-  wordmarks, hero word, chip. LOCATION_BRAND maps utah/arizona -> action,
-  colorado -> anywhere, idaho -> american.
+  huddleSummaries.
