@@ -253,6 +253,10 @@
         <div class="mp-section-title">Assign Logins (location-specific sign-in)</div>
         <div id="mpLoginList"></div>
 
+        <div class="mp-section-title">Team Yearly Goals (each location owns its own)</div>
+        <div id="mpGoalList"></div>
+        <div class="mp-note">Each branch's yearly revenue goal, stored at locationData/&lt;location&gt;/teamYearlyGoals. The team <b>monthly</b> goal is computed automatically as the sum of that branch's reps' own monthly goals — nothing to set here.</div>
+
         <div class="mp-section-title">Extra Locations</div>
         <div class="mp-row">
             <input type="text" id="newLocName" placeholder="Location name" style="flex:2;min-width:200px">
@@ -314,6 +318,16 @@
     db.ref('salespeople').on('value', snap => { reps = snap.val() || {}; renderCounts(); renderManage(); });
     let logins = {};
     db.ref('techLogins').on('value', snap => { logins = snap.val() || {}; renderManage(); });
+    const YEAR_KEY = String(new Date().getFullYear());
+    let teamGoals = {};   // { locationId: yearlyGoal }
+    db.ref('locationData').on('value', snap => {
+        const v = snap.val() || {};
+        teamGoals = {};
+        for (const [locId, node] of Object.entries(v)) {
+            teamGoals[locId] = (node.teamYearlyGoals || {})[YEAR_KEY] || 0;
+        }
+        renderManage();
+    });
 
     // ── tile wiring ──────────────────────────────────────────────
     function enter(id, name, brand) {
@@ -490,6 +504,23 @@
                 if (sel.value) db.ref(`techLogins/${sel.dataset.login}/locationId`).set(sel.value);
                 else db.ref(`techLogins/${sel.dataset.login}/locationId`).remove();
                 toast('Login assignment saved');
+            }));
+
+        // team yearly goal per location
+        $('mpGoalList').innerHTML = Object.entries(locations)
+            .filter(([, l]) => !l.archived)
+            .sort((a, b) => (a[1].name || '').localeCompare(b[1].name || ''))
+            .map(([id, l]) => `
+                <div class="mp-rep-row">
+                    <div>${escapeHtml(l.name)} <span style="color:var(--muted);font-size:12px">${YEAR_KEY}</span></div>
+                    <input type="number" data-goal="${id}" value="${teamGoals[id] || ''}" placeholder="0" style="width:100%;padding:8px 10px;font-size:13px">
+                </div>`).join('');
+
+        $('mpGoalList').querySelectorAll('input[data-goal]').forEach(inp =>
+            inp.addEventListener('change', () => {
+                const val = parseFloat(inp.value) || 0;
+                db.ref(`locationData/${inp.dataset.goal}/teamYearlyGoals/${YEAR_KEY}`).set(val);
+                toast('Goal saved');
             }));
 
         // extra locations list (core four aren't archivable here)
