@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+
+    <meta name="theme-color" content="#080808">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Competition — Action Plumbing</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="location-filter.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{--red:#dc2626;--gold:#eab308;--gold2:#a16207;--red2:#991b1b;--red3:#450a0a;--bg:#080808;--s1:#141414;--s2:#1a1a1a;--s3:#232323;--wire:rgba(255,255,255,0.09);--wire2:rgba(255,255,255,0.14);--wire3:rgba(255,255,255,0.18);--muted:#aaa;--faint:#666;--text:#efefef;--green:#16a34a;--amber:#d97706;--t1:#1d4ed8;--t2:#15803d;--t3:#b45309;--t4:#6d28d9}
+
+/* ── LIGHT MODE ── */
+html.light{--gold:#a16207;--gold2:#854d0e;--bg:#f4f4f4;--s1:#ffffff;--s2:#ebebeb;--s3:#e0e0e0;--s4:#d4d4d4;--wire:rgba(0,0,0,0.08);--wire2:rgba(0,0,0,0.14);--wire3:rgba(0,0,0,0.22);--muted:#555555;--faint:#999999;--text:#111111;--red3:#fde8e8;}
+html.light body::after{display:none;}
+html.light input,html.light select,html.light textarea{background:var(--s3);border-color:var(--wire2);color:var(--text);}
+html.light input::placeholder,html.light textarea::placeholder{color:var(--faint);}
+
+        html{scroll-behavior:smooth}body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden}
+        body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);pointer-events:none;z-index:999}
+        .page{max-width:1320px;margin:0 auto;padding:24px 20px 60px}
+        .pg-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--wire);gap:16px;flex-wrap:wrap}
+        .pg-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,5vw,60px);line-height:.95;letter-spacing:2px}.pg-title em{font-style:normal;color:var(--red)}
+        .pg-sub{font-family:'Oswald',sans-serif;font-size:13px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+        .back-btn{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border:1px solid var(--wire2);padding:9px 16px;text-decoration:none;transition:all .15s;white-space:nowrap;align-self:flex-start}.back-btn:hover{color:var(--text);border-color:var(--muted)}
+        .card{background:var(--s1);border:1px solid var(--wire);padding:24px 28px;margin-bottom:20px}
+        .card-inner{background:var(--s2);border:1px solid var(--wire);padding:16px 18px;margin-bottom:10px}
+        .month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+        .month-nav h2{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px}
+        .sec-label{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px}.sec-label::before{content:'';width:14px;height:2px;background:var(--red);flex:none}.sec-label::after{content:'';flex:1;height:1px;background:var(--wire)}
+        .sec-title-lg{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:var(--text);margin-bottom:16px}
+        input[type=text],input[type=number],select,textarea{background:var(--s3);border:1px solid var(--wire2);color:var(--text);padding:9px 12px;font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:border-color .15s;width:100%}
+        input::placeholder{color:var(--muted)}input:focus,select:focus{border-color:var(--red)}select option{background:var(--s2);color:var(--text)}
+        .excl-chip{display:inline-flex;align-items:center;gap:6px;background:var(--s3);border:1px solid var(--wire2);padding:6px 12px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);cursor:pointer;user-select:none;transition:all .12s}
+        .excl-chip input{accent-color:var(--red);cursor:pointer;margin:0}
+        .excl-chip:has(input:checked){border-color:var(--red);color:var(--text);background:var(--red3)}
+        .btn{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;padding:9px 18px;border:none;cursor:pointer;transition:all .15s}
+        .btn-red{background:var(--red);color:#fff}.btn-red:hover{background:var(--red2)}.btn-red:active{transform:scale(.97)}
+        .btn-outline{background:transparent;color:var(--muted);border:1px solid var(--wire2)}.btn-outline:hover{color:var(--text);border-color:var(--muted)}
+        .btn-save{background:var(--s3);border:1px solid var(--wire2);color:var(--text);font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;padding:12px;cursor:pointer;width:100%;transition:all .15s;margin-top:16px}.btn-save:hover{border-color:var(--red);color:var(--red)}
+        .g3{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--wire)}
+        .g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:2px;background:var(--wire)}
+        @media(max-width:900px){.g3{grid-template-columns:1fr}.g4{grid-template-columns:1fr 1fr}}
+        @media(min-width:901px) and (max-width:1150px){.g3{grid-template-columns:1fr 1fr}}
+        @media(max-width:520px){.g4{grid-template-columns:1fr}}
+        /* team setup */
+        .team-setup-block{background:var(--s2);border:1px solid var(--wire);padding:20px;position:relative}
+        .team-setup-block::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+        .team1::before{background:var(--t1)}.team2::before{background:var(--t2)}.team3::before{background:var(--t3)}.team4::before{background:var(--t4)}
+        .team-label{font-family:'Oswald',sans-serif;font-size:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px}
+        .team1 .team-label{color:#93c5fd}.team2 .team-label{color:#86efac}.team3 .team-label{color:#fcd34d}.team4 .team-label{color:#c4b5fd}
+        .field-lbl{font-family:'Oswald',sans-serif;font-size:12px;font-weight:500;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;display:block}
+        .add-tm-btn{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border:1px solid var(--wire2);padding:5px 12px;background:transparent;cursor:pointer;margin-top:8px;transition:all .15s}.add-tm-btn:hover{color:var(--text);border-color:var(--muted)}
+        .tm-row{display:flex;gap:6px;margin-top:5px}
+        .tm-row select{flex:1}
+        .tm-remove{font-family:'Oswald',sans-serif;font-size:13px;background:transparent;border:1px solid var(--wire2);color:var(--muted);padding:0 10px;cursor:pointer;transition:all .15s;flex-shrink:0}.tm-remove:hover{color:var(--red);border-color:rgba(220,38,38,.3)}
+        /* standings */
+        .standings-card{background:var(--s2);border:1px solid var(--wire);padding:20px;margin-bottom:8px;position:relative;overflow:hidden}
+        .standings-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+        .sc-t1::before{background:var(--t1)}.sc-t2::before{background:var(--t2)}.sc-t3::before{background:var(--t3)}.sc-t4::before{background:var(--t4)}
+        .standings-card.leader{border-color:var(--wire3)}
+        .sc-name{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;color:var(--text)}
+        .sc-rev{font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:2px;line-height:1}
+        .sc-t1 .sc-rev{color:#93c5fd}.sc-t2 .sc-rev{color:#86efac}.sc-t3 .sc-rev{color:#fcd34d}.sc-t4 .sc-rev{color:#c4b5fd}
+        .pts-badge{font-family:'Oswald',sans-serif;font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:4px 12px;border:1px solid}
+        .sc-t1 .pts-badge{color:#93c5fd;border-color:rgba(147,197,253,.3)}.sc-t2 .pts-badge{color:#86efac;border-color:rgba(134,239,172,.3)}.sc-t3 .pts-badge{color:#fcd34d;border-color:rgba(252,211,77,.3)}.sc-t4 .pts-badge{color:#c4b5fd;border-color:rgba(196,181,253,.3)}
+        .mini-stat{background:var(--s3);border:1px solid var(--wire);padding:10px 12px;text-align:center}
+        .mini-stat .lbl{font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+        .mini-stat .val{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--text)}
+        /* category winners */
+        .cat-card{background:var(--s2);border:1px solid var(--wire);padding:16px;text-align:center}
+        .cat-label{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+        .cat-val{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px;color:var(--text);margin-bottom:4px}
+        .cat-team{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+    </style>
+</head>
+<body>
+<div id="themeToggleWrap" style="position:fixed;top:12px;right:16px;z-index:9999;display:flex;flex-direction:row-reverse;align-items:center;gap:10px;"><img src="actionsite-logo.png" alt="Action Plumbing" class="hdr-logo" style="height:30px;width:auto;display:block"><style>@media(max-width:520px){.hdr-logo{height:22px!important}}</style>
+  <button id="themeToggleBtn" onclick="toggleTheme()" style="background:var(--s2);border:1px solid var(--wire2);color:var(--muted);font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:7px 12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;">
+    <span id="themeIcon">☀️</span><span id="themeLabel">LIGHT</span>
+  </button>
+</div>
+<script>
+(function(){var t=localStorage.getItem('apTheme')||'dark';applyTheme(t);})();
+function applyTheme(t){localStorage.setItem('apTheme',t);if(t==='light'){document.documentElement.classList.add('light');var i=document.getElementById('themeIcon');var l=document.getElementById('themeLabel');if(i)i.textContent='🌙';if(l)l.textContent='DARK';}else{document.documentElement.classList.remove('light');var i=document.getElementById('themeIcon');var l=document.getElementById('themeLabel');if(i)i.textContent='☀️';if(l)l.textContent='LIGHT';}}
+function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyTheme(cur==='dark'?'light':'dark');}
+</script>
+
+<div class="page">
+    <div class="pg-header">
+        <div><div class="pg-title">Team <em>Competition</em></div><div class="pg-sub">Monthly standings</div></div>
+        <a href="index.html" class="back-btn">← Dashboard</a>
+    </div>
+    <div class="card">
+        <div class="month-nav">
+            <button class="btn btn-red" id="prevMonth">←</button>
+            <h2 id="monthYear"></h2>
+            <button class="btn btn-red" id="nextMonth">→</button>
+        </div>
+        <div style="background:var(--s2);border:1px solid var(--wire);border-left:3px solid var(--red);padding:14px 16px;margin-bottom:20px">
+            <div style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text);margin-bottom:6px"><i class="ti ti-trophy" style="color:var(--red)"></i> How the Bonus Works</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.5">Four core categories pay <strong style="color:var(--text)">25%</strong> to the team that wins and <strong style="color:var(--text)">12.5%</strong> for second: Turnover Revenue · Certified Reviews (1 pt review / 2 pts photo review) · Close % (non-runners excludable) · Gym (most sessions). <strong style="color:var(--text)">Action Stats</strong> (most sold) is a bonus category worth <strong style="color:var(--text)">10%</strong> for first and <strong style="color:var(--text)">5%</strong> for second. Whichever team wins the most categories takes the crown.</div>
+        </div>
+        <!-- Team Setup -->
+        <div class="sec-label">Team Setup</div>
+        <div class="g3" style="margin-bottom:16px">
+            <div class="team-setup-block team1">
+                <div class="team-label">Team 1</div>
+                <label class="field-lbl">Captain</label>
+                <select id="captain1" style="margin-bottom:10px" onchange="refreshAssignable()"><option value="">Select captain…</option></select>
+                <label class="field-lbl">Teammates</label>
+                <div id="teammates1"></div>
+                <button class="add-tm-btn" onclick="addTeammate(1)">+ Add Teammate</button>
+            </div>
+            <div class="team-setup-block team2">
+                <div class="team-label">Team 2</div>
+                <label class="field-lbl">Captain</label>
+                <select id="captain2" style="margin-bottom:10px" onchange="refreshAssignable()"><option value="">Select captain…</option></select>
+                <label class="field-lbl">Teammates</label>
+                <div id="teammates2"></div>
+                <button class="add-tm-btn" onclick="addTeammate(2)">+ Add Teammate</button>
+            </div>
+            <div class="team-setup-block team3">
+                <div class="team-label">Team 3</div>
+                <label class="field-lbl">Captain</label>
+                <select id="captain3" style="margin-bottom:10px" onchange="refreshAssignable()"><option value="">Select captain…</option></select>
+                <label class="field-lbl">Teammates</label>
+                <div id="teammates3"></div>
+                <button class="add-tm-btn" onclick="addTeammate(3)">+ Add Teammate</button>
+            </div>
+            <div class="team-setup-block team4">
+                <div class="team-label">Team 4</div>
+                <label class="field-lbl">Captain</label>
+                <select id="captain4" style="margin-bottom:10px" onchange="refreshAssignable()"><option value="">Select captain…</option></select>
+                <label class="field-lbl">Teammates</label>
+                <div id="teammates4"></div>
+                <button class="add-tm-btn" onclick="addTeammate(4)">+ Add Teammate</button>
+            </div>
+        </div>
+        <div style="margin-bottom:16px">
+            <label class="field-lbl"><i class="ti ti-ban" style="color:var(--red)"></i> Doesn't Run Calls — exclude from Close % <span style="color:var(--faint);text-transform:none;letter-spacing:0;font-weight:400">(their turnovers, reviews, gym & Action Stats still count)</span></label>
+            <div id="excludeCloseList" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
+        </div>
+        <button class="btn-save" id="saveTeams"><i class="ti ti-device-floppy" style="color:var(--red)"></i> Save Teams for This Month</button>
+        <!-- Leaderboard -->
+        <div id="leaderboard" style="margin-top:28px"></div>
+        <!-- Category Winners -->
+        <div id="detailedStats" style="margin-top:16px"></div>
+        <!-- Gap to First -->
+        <div id="gapToFirst" style="margin-top:24px"></div>
+        <!-- Individual Contributions -->
+        <div id="individualContrib" style="margin-top:24px"></div>
+        <!-- Lock / Final Results -->
+        <div id="lockArea" style="margin-top:24px"></div>
+    </div>
+</div>
+<script>
+firebase.initializeApp({apiKey:"AIzaSyD9POKxbl9hSt2FNtzdv3RPVnAb0wWsNbU",authDomain:"action-sales-tracker.firebaseapp.com",databaseURL:"https://action-sales-tracker-default-rtdb.firebaseio.com",projectId:"action-sales-tracker",storageBucket:"action-sales-tracker.firebasestorage.app",messagingSenderId:"686455834332",appId:"1:686455834332:web:84e9b843f912522bbdd619"});
+const db=firebase.database();let currentDate=new Date(),people=[],logs={},gymLogs={},savedResults={},lastLiveStats=[],currentExclude=[],currentMonthKey='',teamConfig={team1:{},team2:{},team3:{},team4:{}};
+const dk=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const mk=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+db.ref('salespeople').on('value',snap=>{const d=snap.val();people=d?Object.keys(d).filter(k=>!d[k].archived).map(k=>({id:k,name:d[k].name})):[];populateCaptains();loadTeams();});
+db.ref('callLogs').on('value',snap=>{logs=snap.val()||{};renderStats();});
+db.ref('gymLogs').on('value',snap=>{gymLogs=snap.val()||{};renderStats();});
+db.ref('competitionResults').on('value',snap=>{savedResults=snap.val()||{};renderStats();});
+function populateCaptains(){[1,2,3,4].forEach(n=>{const el=document.getElementById(`captain${n}`);el.innerHTML='<option value="">Select captain…</option>'+people.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');});refreshAssignable();}
+function addTeammate(n){const container=document.getElementById(`teammates${n}`);const div=document.createElement('div');div.className='tm-row';div.innerHTML=`<select class="teammate-select" data-team="${n}" onchange="refreshAssignable()"><option value="">Select…</option>${people.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select><button class="tm-remove" onclick="this.parentElement.remove();refreshAssignable();">×</button>`;container.appendChild(div);refreshAssignable();}
+function refreshAssignable(){const selects=[document.getElementById('captain1'),document.getElementById('captain2'),document.getElementById('captain3'),document.getElementById('captain4'),...document.querySelectorAll('.teammate-select')].filter(Boolean);const used=new Set(selects.map(s=>s.value).filter(Boolean));selects.forEach(sel=>{const own=sel.value;const ph=(sel.id||'').startsWith('captain')?'Select captain…':'Select…';sel.innerHTML=`<option value="">${ph}</option>`+people.filter(p=>!used.has(p.id)||p.id===own).map(p=>`<option value="${p.id}"${p.id===own?' selected':''}>${p.name}</option>`).join('');sel.value=own;});}
+function renderExcludeList(){const cont=document.getElementById('excludeCloseList');if(!cont)return;const checked=new Set(currentExclude);cont.innerHTML=people.length?people.map(p=>`<label class="excl-chip"><input type="checkbox" value="${p.id}" ${checked.has(p.id)?'checked':''}>${p.name}</label>`).join(''):'<span style="font-size:12px;color:var(--muted)">No active reps</span>';}
+function loadTeams(){currentMonthKey=mk(currentDate);db.ref(`monthlyCompetition/${currentMonthKey}`).once('value',snap=>{const data=snap.val();if(data){[1,2,3,4].forEach(n=>{const team=data[`team${n}`];document.getElementById(`captain${n}`).value=(team&&team.captain)||'';document.getElementById(`teammates${n}`).innerHTML='';if(team){(team.members||[]).forEach(()=>addTeammate(n));const sels=document.querySelectorAll(`#teammates${n} .teammate-select`);(team.members||[]).forEach((id,i)=>{if(sels[i])sels[i].value=id;});}});teamConfig=data;}else{[1,2,3,4].forEach(n=>{document.getElementById(`captain${n}`).value='';document.getElementById(`teammates${n}`).innerHTML='';});teamConfig={team1:{},team2:{},team3:{},team4:{}};}currentExclude=(data&&data.excludeClose)||[];renderExcludeList();refreshAssignable();renderStats();});}
+document.getElementById('saveTeams').onclick=()=>{const config={team1:{captain:document.getElementById('captain1').value,members:Array.from(document.querySelectorAll('#teammates1 .teammate-select')).map(s=>s.value).filter(v=>v)},team2:{captain:document.getElementById('captain2').value,members:Array.from(document.querySelectorAll('#teammates2 .teammate-select')).map(s=>s.value).filter(v=>v)},team3:{captain:document.getElementById('captain3').value,members:Array.from(document.querySelectorAll('#teammates3 .teammate-select')).map(s=>s.value).filter(v=>v)},team4:{captain:document.getElementById('captain4').value,members:Array.from(document.querySelectorAll('#teammates4 .teammate-select')).map(s=>s.value).filter(v=>v)},excludeClose:Array.from(document.querySelectorAll('#excludeCloseList input:checked')).map(i=>i.value)};currentExclude=config.excludeClose;db.ref(`monthlyCompetition/${currentMonthKey}`).set(config);teamConfig=config;renderStats();};
+function getMDates(date){const y=date.getFullYear(),m=date.getMonth(),last=new Date(y,m+1,0).getDate();return Array.from({length:last},(_,i)=>new Date(y,m,i+1));}
+function getCalls(pid,d){const key=`${pid}_${dk(d)}`;const l=logs[key];return l?Object.values(l):[];}
+function getGym(pid,d){const key=`${pid}_${dk(d)}`;const l=gymLogs[key];return l?Object.values(l):[];}
+function calcTeamStats(memberIds,dates,excludeSet){const s={revenue:0,reviews:0,reviewPoints:0,totalCalls:0,callsSold:0,turnoverRevenue:0,actionStats:0,gymSessions:0,gymMinutes:0};memberIds.forEach(pid=>{const excl=excludeSet&&excludeSet.has(pid);const gymDays=new Set();dates.forEach(d=>{getCalls(pid,d).forEach(c=>{if(!excl)s.totalCalls++;if(c.actionThermostat)s.actionStats++;if(c.reviewWithPic){s.reviewPoints+=2;s.reviews++;}else if(c.reviewCompleted){s.reviewPoints+=1;s.reviews++;}if(c.jobSold){if(!excl)s.callsSold++;s.revenue+=parseFloat(c.amountSold)||0;}});const gs=getGym(pid,d);if(gs.length){gymDays.add(dk(d));gs.forEach(g=>{s.gymMinutes+=parseFloat(g.durationMin)||0;});}});s.gymSessions+=gymDays.size;});const tmset=new Set(memberIds);dates.forEach(d=>{people.forEach(p=>{getCalls(p.id,d).forEach(c=>{if(c.jobSold&&c.soldFromTurnover&&c.turnoverFrom&&tmset.has(c.turnoverFrom))s.turnoverRevenue+=parseFloat(c.amountSold)||0;});});});s.closePercent=s.totalCalls>0?(s.callsSold/s.totalCalls*100):0;return s;}
+function calcPersonStats(pid,dates){const s={turnoverRevenue:0,reviewPoints:0,actionStats:0,gymSessions:0,callsSold:0,totalCalls:0};const gymDays=new Set();dates.forEach(d=>{getCalls(pid,d).forEach(c=>{s.totalCalls++;if(c.actionThermostat)s.actionStats++;if(c.reviewWithPic)s.reviewPoints+=2;else if(c.reviewCompleted)s.reviewPoints+=1;if(c.jobSold)s.callsSold++;});people.forEach(p=>{getCalls(p.id,d).forEach(c=>{if(c.jobSold&&c.soldFromTurnover&&c.turnoverFrom===pid)s.turnoverRevenue+=parseFloat(c.amountSold)||0;});});if(getGym(pid,d).length)gymDays.add(dk(d));});s.gymSessions=gymDays.size;s.closePercent=s.totalCalls>0?(s.callsSold/s.totalCalls*100):0;return s;}
+const CATS=[{key:'turnoverRevenue',label:'Turnover Rev',first:25,second:12.5,fmt:v=>'$'+Math.round(v).toLocaleString()},{key:'reviewPoints',label:'Cert. Reviews',first:25,second:12.5,fmt:v=>v+' pts'},{key:'closePercent',label:'Close %',first:25,second:12.5,fmt:v=>v.toFixed(1)+'%'},{key:'gymSessions',label:'Gym',first:25,second:12.5,fmt:v=>v+' days'},{key:'actionStats',label:'Action Stats',first:10,second:5,fmt:v=>v}];
+const teamColors=['sc-t1','sc-t2','sc-t3','sc-t4'];
+const teamAccents=['#93c5fd','#86efac','#fcd34d','#c4b5fd'];
+function renderStats(){document.getElementById('monthYear').textContent=currentDate.toLocaleDateString('en-US',{month:'long',year:'numeric'}).toUpperCase();const dates=getMDates(currentDate);const teams=[{num:1,captain:teamConfig.team1?.captain,members:[teamConfig.team1?.captain,...(teamConfig.team1?.members||[])].filter(Boolean)},{num:2,captain:teamConfig.team2?.captain,members:[teamConfig.team2?.captain,...(teamConfig.team2?.members||[])].filter(Boolean)},{num:3,captain:teamConfig.team3?.captain,members:[teamConfig.team3?.captain,...(teamConfig.team3?.members||[])].filter(Boolean)},{num:4,captain:teamConfig.team4?.captain,members:[teamConfig.team4?.captain,...(teamConfig.team4?.members||[])].filter(Boolean)}];const excludeSet=new Set(teamConfig.excludeClose||[]);let teamStats=teams.map(team=>{const stats=calcTeamStats(team.members,dates,excludeSet);const captainName=people.find(p=>p.id===team.captain)?.name||'No Captain';return{...team,...stats,captainName,points:0};}).filter(t=>t.members.length>0);if(!teamStats.length){document.getElementById('leaderboard').innerHTML='<div style="font-family:Oswald,sans-serif;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:20px">Set up teams above to start the competition</div>';document.getElementById('detailedStats').innerHTML='';document.getElementById('gapToFirst').innerHTML='';document.getElementById('individualContrib').innerHTML='';document.getElementById('lockArea').innerHTML='';return;}
+teamStats.forEach(t=>{t.bonus=0;t.wins=0;});CATS.forEach(cat=>{const ranked=[...teamStats].filter(t=>(t[cat.key]||0)>0).sort((a,b)=>b[cat.key]-a[cat.key]);if(!ranked.length)return;const topVal=ranked[0][cat.key];const firsts=ranked.filter(t=>t[cat.key]===topVal);firsts.forEach(t=>{const w=teamStats.find(x=>x.num===t.num);w.bonus+=cat.first;w.wins++;});if(firsts.length===1){const rest=ranked.filter(t=>t[cat.key]<topVal);if(rest.length){const secVal=rest[0][cat.key];rest.filter(t=>t[cat.key]===secVal).forEach(t=>{const r=teamStats.find(x=>x.num===t.num);r.bonus+=cat.second;});}}});teamStats.sort((a,b)=>b.wins-a.wins||b.bonus-a.bonus||b.turnoverRevenue-a.turnoverRevenue);
+const lockedSnap=savedResults[currentMonthKey];
+lastLiveStats=teamStats.map(t=>({num:t.num,captainName:t.captainName,members:t.members,revenue:t.revenue,turnoverRevenue:t.turnoverRevenue,reviewPoints:t.reviewPoints,closePercent:t.closePercent,gymSessions:t.gymSessions,actionStats:t.actionStats,bonus:t.bonus,wins:t.wins}));
+if(lockedSnap&&lockedSnap.teams)teamStats=lockedSnap.teams;
+document.getElementById('leaderboard').innerHTML=`<div class="sec-label" style="margin-bottom:16px">Current Standings — Bonus %</div>`+teamStats.map((team,idx)=>{const colorClass=teamColors[team.num-1];const accent=teamAccents[team.num-1];return`<div class="standings-card ${colorClass}${idx===0?' leader':''}"><div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px"><div><div style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">${idx===0&&team.wins>0?'👑 Leader':'#'+(idx+1)}</div><div class="sc-name">Team ${team.captainName.toUpperCase()}</div><div style="font-size:12px;color:var(--muted);margin-top:3px">${team.members.length} members · $${Math.round(team.revenue).toLocaleString()} revenue</div></div><div style="text-align:right"><div class="sc-rev">${team.bonus}%</div><span class="pts-badge">${team.wins} categor${team.wins===1?'y':'ies'} won</span></div></div><div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;background:var(--wire)"><div class="mini-stat"><div class="lbl">Turnover $</div><div class="val" style="font-size:16px">$${Math.round(team.turnoverRevenue/1000*10)/10}k</div></div><div class="mini-stat"><div class="lbl">Reviews</div><div class="val">${team.reviewPoints}</div></div><div class="mini-stat"><div class="lbl">Close %</div><div class="val">${team.closePercent.toFixed(1)}%</div></div><div class="mini-stat"><div class="lbl">Gym</div><div class="val">${team.gymSessions}</div></div><div class="mini-stat"><div class="lbl">Action Stats</div><div class="val">${team.actionStats}</div></div></div></div>`;}).join('');
+document.getElementById('detailedStats').innerHTML=`<div class="sec-label" style="margin-top:24px;margin-bottom:16px">Category Winners — 🥇 1st · 🥈 2nd</div><div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;background:var(--wire)">`+CATS.map(cat=>{const ranked=[...teamStats].filter(t=>(t[cat.key]||0)>0).sort((a,b)=>b[cat.key]-a[cat.key]);if(!ranked.length)return`<div class="cat-card"><div class="cat-label">${cat.label}</div><div class="cat-val" style="color:var(--muted)">—</div><div class="cat-team" style="color:var(--muted)">No data yet</div></div>`;const w=ranked[0];const wAccent=teamAccents[w.num-1];const second=ranked.find(t=>t[cat.key]<w[cat.key]);const secLine=second?`<div style="font-size:11px;color:${teamAccents[second.num-1]};font-family:'Oswald',sans-serif;letter-spacing:.06em;text-transform:uppercase;margin-top:6px">🥈 ${second.captainName} · ${cat.second}%</div>`:'';return`<div class="cat-card"><div class="cat-label">${cat.label}</div><div class="cat-val" style="color:${wAccent}">${cat.fmt(w[cat.key])}</div><div class="cat-team" style="color:${wAccent}">🥇 ${w.captainName} · ${cat.first}%</div>${secLine}</div>`;}).join('')+'</div>';
+// ── Gap to First ──
+const gapHtml=CATS.map(cat=>{const ranked=[...teamStats].sort((a,b)=>b[cat.key]-a[cat.key]);const leadVal=ranked[0]?.[cat.key]||0;const leadName=ranked[0]?.captainName||'—';const lAccent=ranked[0]?teamAccents[ranked[0].num-1]:'var(--muted)';const chasers=teamStats.filter(t=>t.num!==ranked[0]?.num).sort((a,b)=>b[cat.key]-a[cat.key]).map(t=>{const gap=leadVal-(t[cat.key]||0);return`<div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-top:1px solid var(--wire)"><span style="color:var(--muted)">Team ${t.captainName}</span><span style="font-family:'Oswald',sans-serif;font-weight:600;color:${gap<=0?'var(--green)':'var(--text)'}">${gap<=0?'tied / leading':'+'+cat.fmt(gap)+' to lead'}</span></div>`;}).join('');return`<div class="card-inner"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">${cat.label}</span><span style="font-size:12px;color:${lAccent};font-family:'Oswald',sans-serif;letter-spacing:.06em;text-transform:uppercase">🥇 ${leadName} · ${cat.fmt(leadVal)}</span></div>${chasers||'<div style="font-size:12px;color:var(--muted)">No other teams</div>'}</div>`;}).join('');document.getElementById('gapToFirst').innerHTML=`<div class="sec-label" style="margin-bottom:16px">Gap to First</div>`+gapHtml;
+// ── Individual Contributions (live) ──
+const indHtml=teams.filter(t=>t.members.length>0).map(team=>{const accent=teamAccents[team.num-1];const rows=team.members.map(pid=>{const nm=people.find(p=>p.id===pid)?.name||'Unknown';const ps=calcPersonStats(pid,dates);const isCap=pid===team.captain;const excl=excludeSet.has(pid);return`<div style="display:grid;grid-template-columns:1.4fr repeat(5,1fr);gap:6px;align-items:center;padding:8px 10px;background:var(--s3);border:1px solid var(--wire);margin-bottom:3px;font-size:13px"><span style="font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:.03em;text-transform:uppercase">${nm}${isCap?' <span style="color:'+accent+';font-size:10px">©</span>':''}${excl?' <span style="color:var(--faint);font-size:9px;text-transform:none">no calls</span>':''}</span><span style="text-align:center">$${Math.round(ps.turnoverRevenue/1000*10)/10}k</span><span style="text-align:center">${ps.reviewPoints}</span><span style="text-align:center">${excl?'—':ps.closePercent.toFixed(0)+'%'}</span><span style="text-align:center">${ps.gymSessions}</span><span style="text-align:center">${ps.actionStats}</span></div>`;}).join('');return`<div style="margin-bottom:16px"><div style="font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${accent};margin-bottom:8px">Team ${team.captainName}</div><div style="display:grid;grid-template-columns:1.4fr repeat(5,1fr);gap:6px;padding:0 10px 6px;font-size:10px;font-family:'Oswald',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)"><span>Rep</span><span style="text-align:center">Turn $</span><span style="text-align:center">Rev</span><span style="text-align:center">Close</span><span style="text-align:center">Gym</span><span style="text-align:center">Stats</span></div>${rows}</div>`;}).join('');document.getElementById('individualContrib').innerHTML=`<div class="sec-label" style="margin-bottom:16px">Individual Contributions <span style="color:var(--faint);font-size:10px;margin-left:8px">© = captain · live</span></div>`+indHtml;
+// ── Lock / Final Results ──
+const lockEl=document.getElementById('lockArea');const lbl=currentDate.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+if(lockedSnap&&lockedSnap.teams){const when=lockedSnap.lockedAt?new Date(lockedSnap.lockedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';const champ=teamStats[0];lockEl.innerHTML=`<div style="background:var(--s2);border:1px solid rgba(22,163,74,.4);border-left:3px solid var(--green);padding:16px 18px"><div style="font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:6px">🔒 Final Standings Locked${when?' · '+when:''}</div><div style="font-size:13px;color:var(--muted);margin-bottom:12px">Winner: <strong style="color:var(--text)">Team ${champ?.captainName||'—'}</strong> with ${champ?.bonus||0}% (${champ?.wins||0} categories). These numbers are frozen and won't change if call or gym data is edited later.</div><button class="btn-outline" style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:7px 14px;cursor:pointer" onclick="unlockStandings()">Unlock for corrections</button></div>`;}
+else{lockEl.innerHTML=`<button class="btn-save" style="background:var(--green)" onclick="lockStandings()">🔒 Lock Final Standings for ${lbl}</button><div style="font-size:12px;color:var(--faint);font-family:'Oswald',sans-serif;letter-spacing:.06em;text-transform:uppercase;margin-top:8px;text-align:center">Lock at month end to freeze the official result</div>`;}
+}
+function lockStandings(){if(!lastLiveStats.length){alert('No standings to lock yet.');return;}if(!confirm('Lock the final standings for '+currentMonthKey+'? This freezes the official result. You can unlock later for corrections.'))return;db.ref(`competitionResults/${currentMonthKey}`).set({lockedAt:Date.now(),teams:lastLiveStats});}
+function unlockStandings(){if(!confirm('Unlock '+currentMonthKey+'? Standings will go back to live and can be re-locked.'))return;db.ref(`competitionResults/${currentMonthKey}`).remove();}
+document.getElementById('prevMonth').onclick=()=>{currentDate=new Date(currentDate.getFullYear(),currentDate.getMonth()-1,1);loadTeams();};
+document.getElementById('nextMonth').onclick=()=>{currentDate=new Date(currentDate.getFullYear(),currentDate.getMonth()+1,1);loadTeams();};
+</script>
+<style>
+/* ── competition race layer ── */
+.race-cat{background:var(--s2);border:1px solid var(--wire);padding:14px 16px;margin-bottom:10px}
+.race-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.race-title{font-family:'Oswald',sans-serif;font-size:12px;font-weight:700;letter-spacing:.15em;text-transform:uppercase}
+.race-tag{font-family:'Oswald',sans-serif;font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;padding:3px 8px;border:1px solid}
+.race-tag.play{color:#f59e0b;border-color:rgba(245,158,11,.5);animation:rtPulse 1.6s ease-in-out infinite}
+.race-tag.locked{color:var(--muted);border-color:var(--wire)}
+@keyframes rtPulse{0%,100%{opacity:1}50%{opacity:.45}}
+.race-row{display:grid;grid-template-columns:92px 1fr auto;gap:10px;align-items:center;padding:4px 0;font-size:12px}
+.race-name{font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.race-track{background:var(--s3);height:14px;position:relative}
+.race-fill{height:100%;transition:width .5s ease}
+.race-val{font-family:'Oswald',sans-serif;font-weight:600;white-space:nowrap;text-align:right;min-width:120px}
+.race-gap{color:var(--muted);font-weight:400;font-size:11px}
+.wwi-card{background:var(--s2);border:1px solid var(--wire);border-left:3px solid;padding:14px 16px;margin-bottom:10px}
+.wwi-line{display:flex;gap:8px;padding:5px 0;font-size:13px;line-height:1.5;align-items:flex-start}
+.wwi-line .wi{flex:none}
+#swingFeed .sw-row{display:flex;gap:10px;align-items:baseline;padding:8px 12px;background:var(--s2);border:1px solid var(--wire);border-left:3px solid #f59e0b;margin-bottom:4px;font-size:13px}
+#swingFeed .sw-time{margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap}
+#countdownBar{display:none;border:1px solid rgba(220,38,38,.6);background:linear-gradient(90deg,rgba(220,38,38,.14),transparent);padding:14px 18px;margin-top:24px;animation:cdGlow 2s ease-in-out infinite}
+@keyframes cdGlow{0%,100%{border-color:rgba(220,38,38,.6)}50%{border-color:rgba(220,38,38,1)}}
+#countdownBar .cd-big{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:2px;color:var(--red);line-height:1}
+#countdownBar .cd-sub{font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+</style>
+<script>
+/* ══════════════════════════════════════════════════════════════
+   COMPETITION RACE LAYER — race bars, what-wins-it, swing feed,
+   final-week countdown. Wraps renderStats; reads lastLiveStats /
+   savedResults so lock snapshots are respected.
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    const esc = t => String(t).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    const INPLAY = { turnoverRevenue: v => Math.max(2500, v*0.15), reviewPoints: () => 6, closePercent: () => 3, gymSessions: () => 3, actionStats: () => 3 };
+    const NEED = {
+        turnoverRevenue: g => '<b>$' + Math.ceil(g).toLocaleString() + '</b> more turnover revenue',
+        reviewPoints:    g => '<b>' + Math.ceil(g) + ' more review pts</b> (\u2248' + Math.ceil(Math.ceil(g)/2) + ' photo review' + (Math.ceil(Math.ceil(g)/2)===1?'':'s') + ')',
+        closePercent:    g => 'raising close rate <b>' + g.toFixed(1) + ' pts</b>',
+        gymSessions:     g => '<b>' + Math.ceil(g) + ' more gym day' + (Math.ceil(g)===1?'':'s') + '</b>',
+        actionStats:     g => '<b>' + Math.ceil(g) + ' more Action Stat' + (Math.ceil(g)===1?'':'s') + '</b>'
+    };
+
+    // inject containers
+    const gapEl = document.getElementById('gapToFirst');
+    const lb = document.getElementById('leaderboard');
+    const cd = document.createElement('div'); cd.id = 'countdownBar';
+    lb.parentNode.insertBefore(cd, lb);
+    const feed = document.createElement('div'); feed.id = 'swingFeed'; feed.style.marginTop = '24px';
+    lb.parentNode.insertBefore(feed, lb.nextSibling);
+    const wwi = document.createElement('div'); wwi.id = 'whatWinsIt'; wwi.style.marginTop = '24px';
+    gapEl.parentNode.insertBefore(wwi, gapEl.nextSibling);
+
+    const realMonthKey = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); };
+    const isCurrentMonth = () => currentMonthKey === realMonthKey();
+    const isLocked = () => !!(savedResults[currentMonthKey] && savedResults[currentMonthKey].teams);
+    const displayStats = () => isLocked() ? savedResults[currentMonthKey].teams : lastLiveStats;
+
+    function catRank(ts, key){
+        return [...ts].sort((a,b) => (b[key]||0) - (a[key]||0));
+    }
+
+    /* ── 1. RACE BARS (replaces text gap section) ── */
+    function renderRaces(finalWeek){
+        const ts = displayStats();
+        if (!ts || !ts.length){ gapEl.innerHTML = ''; return; }
+        gapEl.innerHTML = '<div class="sec-label" style="margin-bottom:16px">Category Races' + (isLocked() ? ' — Final' : '') + '</div>' + CATS.map(cat => {
+            const ranked = catRank(ts, cat.key);
+            const lead = ranked[0][cat.key] || 0;
+            const second = ranked[1] ? (ranked[1][cat.key] || 0) : 0;
+            let tag = '';
+            if (finalWeek && lead > 0){
+                const inPlay = (lead - second) <= INPLAY[cat.key](lead);
+                tag = '<span class="race-tag ' + (inPlay ? 'play">IN PLAY' : 'locked">LOCKED UP') + '</span>';
+            }
+            const rows = ranked.map(t => {
+                const v = t[cat.key] || 0;
+                const w = lead > 0 ? Math.max(2, v / lead * 100) : 2;
+                const gap = lead - v;
+                const gapTxt = v === lead && lead > 0 ? '<span style="color:#22c55e">\u25B2 leading</span>'
+                    : lead === 0 ? '' 
+                    : '<span class="race-gap">\u2212' + (cat.key==='turnoverRevenue' ? '$'+Math.round(gap).toLocaleString() : cat.key==='closePercent' ? gap.toFixed(1)+' pts' : Math.ceil(gap)) + '</span>';
+                const accent = teamAccents[t.num-1];
+                return '<div class="race-row"><span class="race-name" style="color:' + accent + '">' + esc(t.captainName) + '</span><div class="race-track"><div class="race-fill" style="width:' + w + '%;background:' + accent + '"></div></div><span class="race-val">' + cat.fmt(v) + ' ' + gapTxt + '</span></div>';
+            }).join('');
+            return '<div class="race-cat"><div class="race-head"><span class="race-title">' + cat.label + ' <span style="color:var(--muted);font-weight:400">+' + cat.first + '% / +' + cat.second + '%</span></span>' + tag + '</div>' + rows + '</div>';
+        }).join('');
+    }
+
+    /* ── 2. WHAT WINS IT ── */
+    function renderWWI(){
+        const ts = displayStats();
+        if (!ts || !ts.length || isLocked()){ wwi.innerHTML = ''; return; }
+        wwi.innerHTML = '<div class="sec-label" style="margin-bottom:16px">What Wins It — Today\u2019s Playbook</div>' + ts.map(t => {
+            const accent = teamAccents[t.num-1];
+            const lines = [];
+            CATS.forEach(cat => {
+                const ranked = catRank(ts, cat.key);
+                const lead = ranked[0][cat.key] || 0;
+                const mine = t[cat.key] || 0;
+                if (lead <= 0){ return; }
+                if (mine === lead){
+                    const second = ranked.find(x => (x[cat.key]||0) < lead);
+                    const margin = second ? lead - (second[cat.key]||0) : lead;
+                    const tight = second && margin <= INPLAY[cat.key](lead);
+                    lines.push({ pri: tight ? 1 : 3, html: '<div class="wwi-line"><span class="wi">' + (tight ? '\u26A0\uFE0F' : '\u{1F6E1}\uFE0F') + '</span><span>' + (tight
+                        ? '<b>' + cat.label + ' lead is slipping</b> \u2014 only ' + (cat.key==='turnoverRevenue' ? '$'+Math.round(margin).toLocaleString() : cat.key==='closePercent' ? margin.toFixed(1)+' pts' : Math.ceil(margin)) + ' ahead. Defend the +' + cat.first + '%.'
+                        : '<b>' + cat.label + '</b>: leading \u2014 holding +' + cat.first + '%.') + '</span></div>' });
+                } else {
+                    const gap = lead - mine;
+                    const secondVal = ranked[1] ? (ranked[1][cat.key]||0) : 0;
+                    const holding = mine > 0 && mine === secondVal && ranked.filter(x => (x[cat.key]||0) === lead).length === 1;
+                    const reachable = gap <= INPLAY[cat.key](lead) * 2;
+                    lines.push({ pri: reachable ? 2 : 4, html: '<div class="wwi-line"><span class="wi">' + (reachable ? '\u{1F3AF}' : '\u{1F4CA}') + '</span><span>' + NEED[cat.key](gap) + ' ties for <b>' + cat.label + '</b> (+' + cat.first + '%)' + (holding ? ' \u2014 you hold 2nd (+' + cat.second + '%) now' : '') + (reachable ? '' : ' \u2014 long shot') + '.</span></div>' });
+                }
+            });
+            lines.sort((a,b) => a.pri - b.pri);
+            return '<div class="wwi-card" style="border-left-color:' + accent + '"><div style="font-family:\'Oswald\',sans-serif;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + accent + ';margin-bottom:6px">Team ' + esc(t.captainName) + ' \u00b7 ' + t.bonus + '%</div>' + lines.slice(0,4).map(l => l.html).join('') + '</div>';
+        }).join('');
+    }
+
+    /* ── 3. SWING FEED ── */
+    let feedRef = null, feedMonth = null;
+    function attachFeed(){
+        if (feedMonth === currentMonthKey) return;
+        if (feedRef) feedRef.off();
+        feedMonth = currentMonthKey;
+        feedRef = db.ref('competitionFeed/' + currentMonthKey).limitToLast(12);
+        feedRef.on('value', s => {
+            const items = [];
+            s.forEach(ch => { items.push(ch.val()); });
+            items.reverse();
+            feed.innerHTML = items.length ? '<div class="sec-label" style="margin-bottom:12px">Lead Changes</div>' + items.map(i => {
+                const when = new Date(i.ts).toLocaleDateString('en-US', { month:'short', day:'numeric' }) + ' \u00b7 ' + new Date(i.ts).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+                const msg = i.from ? '<b>Team ' + esc(i.to) + '</b>&nbsp;took&nbsp;<b>' + esc(i.cat) + '</b>&nbsp;from Team ' + esc(i.from) : '<b>Team ' + esc(i.to) + '</b>&nbsp;claimed&nbsp;<b>' + esc(i.cat) + '</b>';
+                return '<div class="sw-row"><span>\u26A1</span><span>' + msg + '</span><span class="sw-time">' + when + '</span></div>';
+            }).join('') : '';
+        });
+    }
+    function detectSwings(){
+        if (!isCurrentMonth() || isLocked()) return;
+        const ts = lastLiveStats;
+        if (!ts || !ts.length || !logs || !Object.keys(logs).length) return;
+        const leaders = {};
+        let any = false;
+        CATS.forEach(cat => {
+            const ranked = catRank(ts, cat.key).filter(t => (t[cat.key]||0) > 0);
+            leaders[cat.key] = ranked.length ? ranked[0].captainName : null;
+            if (leaders[cat.key]) any = true;
+        });
+        if (!any) return;
+        const mk2 = currentMonthKey;
+        db.ref('competitionMeta/' + mk2 + '/catLeaders').transaction(cur => {
+            if (cur && JSON.stringify(cur) === JSON.stringify(leaders)) return; // no change → abort
+            return leaders;
+        }, (err, committed, snap) => {
+            if (err || !committed) return;
+        }, false);
+        // read-then-diff for announcements (separate from the txn to keep it simple)
+        db.ref('competitionMeta/' + mk2 + '/prevLeaders').once('value', s => {
+            const prev = s.val();
+            if (prev){
+                CATS.forEach(cat => {
+                    const was = prev[cat.key] || null, now = leaders[cat.key] || null;
+                    if (now && was !== now){
+                        db.ref('competitionFeed/' + mk2).push({ ts: Date.now(), cat: cat.label, from: was, to: now });
+                    }
+                });
+            }
+            db.ref('competitionMeta/' + mk2 + '/prevLeaders').set(leaders);
+        });
+    }
+
+    /* ── 4. FINAL-WEEK COUNTDOWN ── */
+    function daysLeftInMonth(){
+        const now = new Date();
+        const dim = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+        return dim - now.getDate() + 1;
+    }
+    function renderCountdown(){
+        const show = isCurrentMonth() && !isLocked() && daysLeftInMonth() <= 5 && lastLiveStats && lastLiveStats.length;
+        if (!show){ cd.style.display = 'none'; return false; }
+        const now = new Date();
+        const end = new Date(now.getFullYear(), now.getMonth()+1, 1);
+        const ms = end - now;
+        const d = Math.floor(ms/86400000), h = Math.floor(ms%86400000/3600000);
+        cd.style.display = 'block';
+        cd.innerHTML = '<div class="cd-big">\u23F1 FINAL WEEK \u2014 ' + d + 'D ' + h + 'H LEFT</div><div class="cd-sub">Bonus locks at month end \u00b7 every category below is win-or-lose money</div>';
+        return true;
+    }
+
+    window.renderRaceLayer = function(){
+        try {
+            attachFeed();
+            const fw = renderCountdown();
+            renderRaces(fw);
+            renderWWI();
+            detectSwings();
+        } catch(e){ /* best-effort layer */ }
+    };
+    const _rs2 = renderStats;
+    renderStats = function(){ _rs2(); renderRaceLayer(); };
+    setInterval(() => { if (isCurrentMonth() && daysLeftInMonth() <= 5) renderCountdown(); }, 60000);
+})();
+</script>
+<style>
+#abn-sheet,#abn-scrim{display:none}
+body{padding-bottom:calc(76px + env(safe-area-inset-bottom))!important}
+#abn{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:99990;
+background:rgba(10,10,10,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+border-top:1px solid rgba(255,255,255,.09);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+html.light #abn{background:rgba(250,250,250,.94);border-top-color:rgba(0,0,0,.1)}
+.abn-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+padding:6px 2px;text-decoration:none;color:#8a8a8a;position:relative;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;font:inherit}
+.abn-ico{font-size:19px;line-height:1}
+.abn-lab{font-family:'Oswald',sans-serif;font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+.abn-tab.on{color:#dc2626}
+.abn-tab.on::before{content:'';position:absolute;top:-7px;left:25%;right:25%;height:2px;background:#dc2626}
+#abn-scrim.open{display:block;position:fixed;inset:0;z-index:99991;background:rgba(0,0,0,.55)}
+#abn-sheet.open{display:block;position:fixed;left:0;right:0;bottom:0;z-index:99992;
+background:#111;border-top:2px solid #dc2626;padding:18px 16px calc(20px + env(safe-area-inset-bottom))}
+html.light #abn-sheet.open{background:#fff}
+.abn-sh{font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:#7a7a7a;margin-bottom:12px}
+.abn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.abn-item{display:flex;align-items:center;gap:10px;padding:13px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);text-decoration:none;color:#e8e8e8}
+html.light .abn-item{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.08);color:#111}
+.abn-item .i{font-size:18px}
+.abn-item .t{font-family:'Oswald',sans-serif;font-size:11.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+@media (pointer:coarse) and (orientation:landscape){
+#abn,#abn-sheet.open,#abn-scrim.open{display:none!important}
+body{padding-bottom:0!important}
+}
+</style>
+<nav id="abn">
+ <a class="abn-tab" href="index.html" data-p="index.html"><span class="abn-ico"><i class="ti ti-home"></i></span><span class="abn-lab">Home</span></a>
+ <a class="abn-tab" href="calls.html" data-p="calls.html"><span class="abn-ico"><i class="ti ti-phone"></i></span><span class="abn-lab">Calls</span></a>
+ <a class="abn-tab" href="goals.html" data-p="goals.html"><span class="abn-ico"><i class="ti ti-target"></i></span><span class="abn-lab">My Report</span></a>
+ <a class="abn-tab" href="turnin.html" data-p="turnin.html"><span class="abn-ico"><i class="ti ti-clipboard-list"></i></span><span class="abn-lab">Turn-In</span></a>
+ <button class="abn-tab" id="abn-more" type="button"><span class="abn-ico"><i class="ti ti-menu-2"></i></span><span class="abn-lab">More</span></button>
+</nav>
+<div id="abn-scrim"></div>
+<div id="abn-sheet">
+ <div class="abn-sh">More</div>
+ <div class="abn-grid">
+  <a class="abn-item" href="reports.html"><span class="i"><i class="ti ti-chart-bar"></i></span><span class="t">Team Report</span></a>
+  <a class="abn-item" href="money.html"><span class="i"><i class="ti ti-cash"></i></span><span class="t">Money Owed</span></a>
+  <a class="abn-item" href="competition.html"><span class="i"><i class="ti ti-trophy"></i></span><span class="t">Competition</span></a>
+  <a class="abn-item" href="doors.html"><span class="i"><i class="ti ti-door"></i></span><span class="t">Door Knock</span></a>
+  <a class="abn-item" href="gym.html"><span class="i"><i class="ti ti-barbell"></i></span><span class="t">Log Gym</span></a>
+  <a class="abn-item" href="training.html"><span class="i"><i class="ti ti-school"></i></span><span class="t">Sales Academy</span></a>
+  <a class="abn-item" href="manager.html"><span class="i"><i class="ti ti-compass"></i></span><span class="t">Manager</span></a>
+ </div>
+</div>
+<script>
+(function(){
+ var p=(location.pathname.split('/').pop()||'index.html');
+ document.querySelectorAll('.abn-tab[data-p]').forEach(function(t){if(t.getAttribute('data-p')===p)t.classList.add('on');});
+ var more=['reports.html','money.html','competition.html','doors.html','gym.html','training.html','manager.html','action_workbook.html','team_workbook.html'];
+ if(more.indexOf(p)>-1)document.getElementById('abn-more').classList.add('on');
+ var sheet=document.getElementById('abn-sheet'),scrim=document.getElementById('abn-scrim');
+ document.getElementById('abn-more').onclick=function(){sheet.classList.toggle('open');scrim.classList.toggle('open');};
+ scrim.onclick=function(){sheet.classList.remove('open');scrim.classList.remove('open');};
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0a0a">
+    <title>Select Location — Sales Tracker</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg:#0a0a0a; --s1:#141414; --s2:#1a1a1a; --s3:#232323;
+            --wire:rgba(255,255,255,0.09); --wire2:rgba(255,255,255,0.16);
+            --muted:#777; --faint:#3a3a3a; --text:#f0f0f0;
+            /* brand palettes */
+            --ap-red:#dc2626; --ap-red2:#991b1b;
+            --aw-navy:#0a102a; --aw-blue:#2575fc; --aw-sky:#0AA2FF; --aw-mut:#a9b6dd;
+            --ar-navy:#0a3161; --ar-red:#b71e29;
+        }
+        body {
+            background:var(--bg); color:var(--text);
+            font-family:'Inter',sans-serif; min-height:100vh; overflow-x:hidden;
+        }
+        body::after {
+            content:''; position:fixed; inset:0; pointer-events:none; z-index:1;
+            background:repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px);
+        }
+        .page { max-width:860px; margin:0 auto; padding:0 20px 90px; position:relative; z-index:2; }
+
+        /* ── neutral hero ── */
+        .hero { padding:54px 0 36px; text-align:center; }
+        .hero-eyebrow {
+            font-family:'Oswald',sans-serif; font-size:11px; font-weight:600;
+            letter-spacing:.35em; text-transform:uppercase; color:var(--muted);
+            display:inline-flex; align-items:center; gap:12px;
+        }
+        .hero-eyebrow::before, .hero-eyebrow::after { content:''; width:28px; height:1px; background:var(--wire2); }
+        .hero-title {
+            font-family:'Bebas Neue',sans-serif; font-size:clamp(50px,9.5vw,80px);
+            line-height:.95; letter-spacing:3px; margin-top:12px; color:#fff;
+        }
+        .hero-sub {
+            color:var(--muted); font-size:12px; margin-top:10px;
+            font-family:'Oswald',sans-serif; letter-spacing:.18em; text-transform:uppercase;
+        }
+
+        /* ── branded tiles: big 2×2 ── */
+        .loc-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:18px; }
+        @media (max-width:640px){ .loc-grid { grid-template-columns:1fr; } }
+        .tile {
+            border:1px solid var(--wire); padding:0; cursor:pointer; text-align:left;
+            width:100%; position:relative; overflow:hidden; display:block;
+            transition:transform .13s, box-shadow .2s; text-decoration:none;
+        }
+        .tile:hover { transform:translateY(-3px); box-shadow:0 14px 34px rgba(0,0,0,.45); }
+        .tile:active { transform:translateY(-1px); }
+        .tile .t-bar { height:4px; width:100%; }
+        .tile .t-body { padding:32px 28px 26px; min-height:220px; display:flex; flex-direction:column; }
+        .tile .t-mark {
+            position:absolute; right:-4px; top:2px; font-family:'Bebas Neue',sans-serif;
+            font-size:130px; line-height:1; opacity:.07; pointer-events:none;
+        }
+        .t-name { font-family:'Bebas Neue',sans-serif; font-size:clamp(32px,4.5vw,42px); letter-spacing:1.5px; line-height:1.02; }
+        .t-region { font-family:'Oswald',sans-serif; font-size:10px; letter-spacing:.22em; text-transform:uppercase; margin-top:7px; }
+        .t-meta { margin-top:auto; padding-top:18px; display:flex; justify-content:space-between; align-items:center; font-size:12px; }
+        .t-enter { font-family:'Oswald',sans-serif; font-size:10px; letter-spacing:.2em; text-transform:uppercase; }
+
+        /* Action tiles — original black/red */
+        .tile.action { background:#0d0d0d; border-color:rgba(255,255,255,.1); color:#efefef; }
+        .tile.action .t-bar { background:var(--ap-red); }
+        .tile.action .t-mark { color:var(--ap-red); }
+        .tile.action .t-region { color:var(--ap-red); }
+        .tile.action .t-meta { color:#666; }
+        .tile.action .t-enter { color:#444; }
+        .tile.action:hover .t-enter { color:var(--ap-red); }
+
+        /* Anywhere Rooter — navy/blue, Barlow */
+        .tile.anywhere { background:var(--aw-navy); border-color:rgba(37,117,252,.28); color:#f0f4ff; }
+        .tile.anywhere .t-bar { background:linear-gradient(90deg, var(--aw-blue) 0 33%, #f5f5f5 33% 66%, #d64545 66% 100%); }
+        .tile.anywhere .t-name { font-family:'Barlow Condensed',sans-serif; font-weight:700; letter-spacing:1px; font-size:clamp(33px,4.6vw,44px); }
+        .tile.anywhere .t-mark { color:var(--aw-blue); opacity:.12; }
+        .tile.anywhere .t-region { color:var(--aw-sky); }
+        .tile.anywhere .t-meta { color:var(--aw-mut); }
+        .tile.anywhere .t-enter { color:#5b6a99; }
+        .tile.anywhere:hover .t-enter { color:var(--aw-sky); }
+
+        /* American Rooter — flag white/navy/red */
+        .tile.american { background:#f7f8fa; border-color:#d5dbe6; color:var(--ar-navy); }
+        .tile.american .t-bar { background:linear-gradient(90deg, var(--ar-red) 0 33%, #ffffff 33% 66%, var(--ar-navy) 66% 100%); }
+        .tile.american .t-name { color:var(--ar-navy); }
+        .tile.american .t-mark { color:var(--ar-navy); opacity:.08; }
+        .tile.american .t-region { color:var(--ar-red); }
+        .tile.american .t-meta { color:#5a6b85; }
+        .tile.american .t-enter { color:#8fa0b8; }
+        .tile.american:hover .t-enter { color:var(--ar-red); }
+        .tile.american .t-logo { max-width:230px; max-height:60px; object-fit:contain; margin-bottom:10px; display:block; }
+
+        /* extra neutral tiles from DB */
+        .tile.neutral { background:var(--s1); color:var(--text); }
+        .tile.neutral .t-bar { background:var(--wire2); }
+        .tile.neutral .t-region { color:var(--muted); }
+        .tile.neutral .t-meta { color:var(--muted); }
+        .tile.neutral .t-enter { color:var(--faint); }
+        .tile.neutral:hover .t-enter { color:var(--text); }
+
+        .allwide { text-align:center; margin-top:20px; }
+        .allwide a {
+            color:var(--muted); font-family:'Oswald',sans-serif; font-size:11px;
+            letter-spacing:.2em; text-transform:uppercase; text-decoration:none;
+            border-bottom:1px solid var(--faint); padding-bottom:2px;
+        }
+        .allwide a:hover { color:var(--text); border-color:var(--muted); }
+
+        /* ── location battle ── */
+        .battle { margin-top:56px; }
+        .sec-head { display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--wire2); padding-bottom:10px; margin-bottom:6px; }
+        .sec-title { font-family:'Bebas Neue',sans-serif; font-size:34px; letter-spacing:2px; color:#fff; }
+        .sec-month { font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); }
+        .battle-row {
+            display:grid; grid-template-columns:34px 1fr auto; gap:14px; align-items:center;
+            padding:16px 4px; border-bottom:1px solid var(--wire);
+        }
+        .b-rank { font-family:'Bebas Neue',sans-serif; font-size:30px; color:var(--faint); text-align:center; }
+        .battle-row.first .b-rank { color:#fff; }
+        .b-name { font-family:'Oswald',sans-serif; font-size:14px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; display:flex; align-items:center; gap:9px; }
+        .b-dot { width:9px; height:9px; flex:none; }
+        .b-sub { font-size:11px; color:var(--muted); margin-top:3px; font-family:'Inter',sans-serif; letter-spacing:0; text-transform:none; font-weight:400; }
+        .b-barwrap { grid-column:2 / span 2; height:6px; background:var(--s2); margin-top:9px; }
+        .b-bar { height:100%; width:0; transition:width .8s ease; }
+        .b-rev { font-family:'Bebas Neue',sans-serif; font-size:26px; text-align:right; color:#fff; }
+        .b-rev small { display:block; font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:.2em; color:var(--muted); }
+        .b-inner { grid-column:2 / span 2; display:contents; }
+        .battle-note { color:var(--faint); font-size:11px; margin-top:12px; }
+        .battle-loading { color:var(--muted); padding:26px 4px; font-size:13px; }
+
+        /* ── manage panel ── */
+        .manage-toggle {
+            display:block; margin:44px auto 0; background:none; border:1px solid var(--wire2);
+            color:var(--muted); font-family:'Oswald',sans-serif; font-size:11px;
+            letter-spacing:.2em; text-transform:uppercase; padding:10px 22px; cursor:pointer;
+        }
+        .manage-toggle:hover { color:var(--text); border-color:var(--muted); }
+        #managePanel { display:none; margin-top:24px; background:var(--s1); border:1px solid var(--wire); border-top:3px solid #fff; padding:26px 22px; }
+        #managePanel h2 { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:2px; }
+        #managePanel .mp-sub { color:var(--muted); font-size:12px; margin:4px 0 6px; }
+        .mp-section-title { font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:#fff; margin:22px 0 10px; }
+        input, select {
+            background:var(--s2); border:1px solid var(--wire2); color:var(--text);
+            padding:10px 12px; font-family:'Inter',sans-serif; font-size:14px; outline:none;
+        }
+        input:focus, select:focus { border-color:var(--muted); }
+        .btn {
+            background:#fff; border:none; color:#0a0a0a; font-family:'Oswald',sans-serif;
+            font-size:12px; letter-spacing:.14em; text-transform:uppercase; font-weight:600;
+            padding:10px 18px; cursor:pointer;
+        }
+        .btn:hover { background:#ddd; }
+        .btn.ghost { background:none; border:1px solid var(--wire2); color:var(--muted); }
+        .btn.ghost:hover { color:var(--text); border-color:var(--muted); }
+        .mp-row { display:flex; gap:8px; flex-wrap:wrap; }
+        .mp-rep-row { display:grid; grid-template-columns:1fr 190px; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--wire); }
+        .mp-rep-row select { width:100%; padding:8px 10px; font-size:13px; }
+        .mp-note { color:var(--faint); font-size:11px; margin-top:14px; line-height:1.5; }
+        .mp-loc-item { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--wire); }
+        .mp-loc-item span { font-family:'Oswald',sans-serif; font-size:14px; letter-spacing:.06em; }
+
+        .toast {
+            position:fixed; bottom:26px; left:50%; transform:translateX(-50%);
+            background:var(--s2); border:1px solid #fff; color:var(--text);
+            padding:12px 22px; font-family:'Oswald',sans-serif; font-size:12px;
+            letter-spacing:.14em; text-transform:uppercase; z-index:99999; display:none;
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="hero">
+        <div class="hero-eyebrow">Sales Command</div>
+        <div class="hero-title">SELECT YOUR LOCATION</div>
+        <div class="hero-sub">Four branches · One mission</div>
+    </div>
+
+    <div class="loc-grid" id="locGrid">
+        <!-- Action Utah -->
+        <button class="tile action" data-id="utah" data-name="Action Utah" data-brand="action">
+            <div class="t-bar"></div>
+            <div class="t-mark">AP</div>
+            <div class="t-body">
+                <div class="t-name">ACTION <span style="color:var(--ap-red)">UTAH</span></div>
+                <div class="t-region">Action Plumbing · Heating · Air · Electric</div>
+                <div class="t-meta"><span id="cnt-utah">— reps</span><span class="t-enter">Enter →</span></div>
+            </div>
+        </button>
+
+        <!-- Action Arizona -->
+        <button class="tile action" data-id="arizona" data-name="Action Arizona" data-brand="action">
+            <div class="t-bar"></div>
+            <div class="t-mark">AP</div>
+            <div class="t-body">
+                <div class="t-name">ACTION <span style="color:var(--ap-red)">ARIZONA</span></div>
+                <div class="t-region">Action Plumbing · Heating · Air · Electric</div>
+                <div class="t-meta"><span id="cnt-arizona">— reps</span><span class="t-enter">Enter →</span></div>
+            </div>
+        </button>
+
+        <!-- Anywhere Rooter (Colorado) -->
+        <button class="tile anywhere" data-id="colorado" data-name="Anywhere Rooter" data-brand="anywhere">
+            <div class="t-bar"></div>
+            <div class="t-mark">AR</div>
+            <div class="t-body">
+                <div class="t-name">ANYWHERE <span style="color:var(--aw-sky)">ROOTER</span></div>
+                <div class="t-region">Colorado</div>
+                <div class="t-meta"><span id="cnt-colorado">— reps</span><span class="t-enter">Enter →</span></div>
+            </div>
+        </button>
+
+        <!-- American Rooter & Drain (Idaho) -->
+        <button class="tile american" data-id="idaho" data-name="American Rooter &amp; Drain" data-brand="american">
+            <div class="t-bar"></div>
+            <div class="t-mark">★</div>
+            <div class="t-body">
+                <img class="t-logo" alt="" src="https://lirp.cdn-website.com/4710e5d4/dms3rep/multi/opt/American+Rooter+-+Drain+logo-353w.webp" onerror="this.style.display='none'">
+                <div class="t-name">AMERICAN ROOTER <span style="color:var(--ar-red)">&amp; DRAIN</span></div>
+                <div class="t-region">Idaho · Treasure Valley</div>
+                <div class="t-meta"><span id="cnt-idaho">— reps</span><span class="t-enter">Enter →</span></div>
+            </div>
+        </button>
+    </div>
+
+    <div class="allwide"><a href="#" id="allLink">Enter company-wide view (all Action-DB locations)</a></div>
+
+    <!-- ── LOCATION BATTLE ── -->
+    <div class="battle">
+        <div class="sec-head">
+            <div class="sec-title">LOCATION BATTLE</div>
+            <div class="sec-month" id="battleMonth"></div>
+        </div>
+        <div id="battleBody"><div class="battle-loading">Loading the battlefield…</div></div>
+        <div class="battle-note" id="battleNote"></div>
+    </div>
+
+    <button class="manage-toggle" id="manageToggle">⚙ Manage Locations &amp; Rep Assignments</button>
+
+    <div id="managePanel">
+        <h2>MANAGE</h2>
+        <div class="mp-sub">Assign reps and logins to a branch. Reps/logins without a branch are shared — visible and valid everywhere — and shared reps are excluded from the battle.</div>
+
+        <div class="mp-section-title">Assign Reps</div>
+        <div id="mpRepList"></div>
+
+        <div class="mp-section-title">Assign Logins (location-specific sign-in)</div>
+        <div id="mpLoginList"></div>
+
+        <div class="mp-section-title">Extra Locations</div>
+        <div class="mp-row">
+            <input type="text" id="newLocName" placeholder="Location name" style="flex:2;min-width:200px">
+            <input type="text" id="newLocRegion" placeholder="Region" style="flex:1;min-width:120px">
+            <button class="btn" id="addLocBtn">Add</button>
+        </div>
+        <div id="mpLocList" style="margin-top:10px"></div>
+
+        <div class="mp-note">Assignments write a <b>locationId</b> onto salespeople/&lt;id&gt;. Set a PIN at Firebase key <b>locationsPin</b> to lock this panel.</div>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+    firebase.initializeApp({
+        apiKey: "AIzaSyD9POKxbl9hSt2FNtzdv3RPVnAb0wWsNbU",
+        authDomain: "action-sales-tracker.firebaseapp.com",
+        databaseURL: "https://action-sales-tracker-default-rtdb.firebaseio.com",
+        projectId: "action-sales-tracker",
+        storageBucket: "action-sales-tracker.firebasestorage.app",
+        messagingSenderId: "686455834332",
+        appId: "1:686455834332:web:84e9b843f912522bbdd619"
+    });
+    const db = firebase.database();
+    const AR_DB_URL = 'https://anywhere-rooter-tracker-default-rtdb.firebaseio.com';
+
+    const BRANDS = {
+        utah:     { name:'Action Utah',            region:'Utah',     brand:'action',   color:'#dc2626' },
+        arizona:  { name:'Action Arizona',         region:'Arizona',  brand:'action',   color:'#dc2626' },
+        colorado: { name:'Anywhere Rooter',        region:'Colorado', brand:'anywhere', color:'#2575fc' },
+        idaho:    { name:'American Rooter & Drain', region:'Idaho',   brand:'american', color:'#b71e29' }
+    };
+
+    let locations = {}, reps = {};
+    let manageUnlocked = false;
+    const $ = id => document.getElementById(id);
+
+    function toast(msg) {
+        const t = $('toast'); t.textContent = msg; t.style.display = 'block';
+        clearTimeout(t._h); t._h = setTimeout(() => t.style.display = 'none', 2200);
+    }
+    function escapeHtml(s) {
+        return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // ── seed the four fixed locations (once, non-destructive) ────
+    db.ref('locations').once('value').then(snap => {
+        const cur = snap.val() || {};
+        const updates = {};
+        for (const [id, def] of Object.entries(BRANDS)) {
+            if (!cur[id]) updates[id] = { name:def.name, region:def.region, brand:def.brand, createdAt:Date.now() };
+        }
+        if (Object.keys(updates).length) db.ref('locations').update(updates);
+        if (cur.colorado && cur.colorado.external) db.ref('locations/colorado/external').remove();
+    });
+
+    // ── live data ────────────────────────────────────────────────
+    db.ref('locations').on('value', snap => { locations = snap.val() || {}; renderExtras(); renderManage(); });
+    db.ref('salespeople').on('value', snap => { reps = snap.val() || {}; renderCounts(); renderManage(); });
+    let logins = {};
+    db.ref('techLogins').on('value', snap => { logins = snap.val() || {}; renderManage(); });
+
+    // ── tile wiring ──────────────────────────────────────────────
+    function enter(id, name, brand) {
+        localStorage.setItem('apLocation', JSON.stringify({ id, name, brand }));
+        window.location.href = 'index.html';
+    }
+    document.querySelectorAll('.tile[data-brand]').forEach(t =>
+        t.addEventListener('click', () => enter(t.dataset.id, t.dataset.name.replace('&amp;','&'), t.dataset.brand)));
+    $('allLink').addEventListener('click', e => { e.preventDefault(); enter('all', 'All Locations', 'action'); });
+
+    function renderCounts() {
+        const active = Object.values(reps).filter(r => !r.archived);
+        const shared = active.filter(r => !r.locationId).length;
+        ['utah','arizona','colorado','idaho'].forEach(id => {
+            const n = active.filter(r => r.locationId === id).length;
+            const el = $('cnt-' + id);
+            if (el) el.textContent = n + ' reps' + (shared ? ' +' + shared + ' shared' : '');
+        });
+    }
+
+    // extra (non-core) locations render as neutral tiles
+    function renderExtras() {
+        document.querySelectorAll('.tile.neutral').forEach(n => n.remove());
+        const grid = $('locGrid');
+        Object.entries(locations)
+            .filter(([id, l]) => !BRANDS[id] && !l.archived)
+            .forEach(([id, l]) => {
+                const b = document.createElement('button');
+                b.className = 'tile neutral';
+                b.innerHTML = `<div class="t-bar"></div><div class="t-mark">◆</div>
+                    <div class="t-body">
+                        <div class="t-name">${escapeHtml((l.name||'').toUpperCase())}</div>
+                        <div class="t-region">${escapeHtml(l.region || '')}</div>
+                        <div class="t-meta"><span>${Object.values(reps).filter(r=>!r.archived&&r.locationId===id).length} reps</span><span class="t-enter">Enter →</span></div>
+                    </div>`;
+                b.addEventListener('click', () => enter(id, l.name, 'action'));
+                grid.appendChild(b);
+            });
+    }
+
+    // ── LOCATION BATTLE (current month, both databases) ──────────
+    const now = new Date();
+    const monthKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    $('battleMonth').textContent = now.toLocaleString('en-US', { month:'long', year:'numeric' });
+
+    function crunch(callLogs, personLoc) {
+        const out = {};
+        for (const dayKey of Object.keys(callLogs || {})) {
+            const us = dayKey.lastIndexOf('_');
+            const personId = dayKey.slice(0, us), date = dayKey.slice(us + 1);
+            if (!date.startsWith(monthKey)) continue;
+            const locId = personLoc ? personLoc(personId) : 'colorado';
+            if (!locId) continue;
+            const t = out[locId] = out[locId] || { revenue:0, sold:0, calls:0, reviews:0 };
+            for (const call of Object.values(callLogs[dayKey] || {})) {
+                if (!call || typeof call !== 'object') continue;
+                t.calls++;
+                if (call.jobSold) { t.sold++; t.revenue += Number(call.amountSold) || 0; }
+                if (call.reviewCompleted) t.reviews++;
+            }
+        }
+        return out;
+    }
+
+    async function runBattle() {
+        try {
+            const [apLogs, apPeople, arLogs] = await Promise.all([
+                fetch('https://action-sales-tracker-default-rtdb.firebaseio.com/callLogs.json').then(r => r.json()),
+                fetch('https://action-sales-tracker-default-rtdb.firebaseio.com/salespeople.json').then(r => r.json()),
+                fetch(AR_DB_URL + '/callLogs.json').then(r => r.json()).catch(() => ({}))
+            ]);
+            const locOf = pid => (apPeople && apPeople[pid] && apPeople[pid].locationId) || null;
+            const stats = crunch(apLogs, locOf);
+            // pre-migration fallback: if no Colorado data in the Action DB yet,
+            // read it live from the old Anywhere Rooter DB (never double-counts)
+            if (!stats.colorado || !stats.colorado.calls) {
+                const arStats = crunch(arLogs, null);
+                if (arStats.colorado) stats.colorado = arStats.colorado;
+            }
+
+            let unassigned = 0;
+            for (const p of Object.values(apPeople || {})) if (!p.archived && !p.locationId) unassigned++;
+
+            const rows = ['utah','arizona','colorado','idaho']
+                .map(id => ({ id, ...BRANDS[id], s: stats[id] || { revenue:0, sold:0, calls:0, reviews:0 } }))
+                .sort((a, b) => b.s.revenue - a.s.revenue);
+
+            const maxRev = Math.max(1, ...rows.map(r => r.s.revenue));
+            $('battleBody').innerHTML = rows.map((r, i) => {
+                const close = r.s.calls ? Math.round(r.s.sold / r.s.calls * 100) : 0;
+                return `<div class="battle-row${i === 0 ? ' first' : ''}">
+                    <div class="b-rank">${i + 1}</div>
+                    <div>
+                        <div class="b-name"><span class="b-dot" style="background:${r.color}"></span>${escapeHtml(r.name)}</div>
+                        <div class="b-sub">${r.s.sold} sold · ${r.s.calls} calls · ${close}% close · ${r.s.reviews} reviews</div>
+                    </div>
+                    <div class="b-rev">$${Math.round(r.s.revenue).toLocaleString()}<small>REVENUE</small></div>
+                    <div class="b-barwrap"><div class="b-bar" style="background:${r.color}" data-w="${(r.s.revenue / maxRev * 100).toFixed(1)}"></div></div>
+                </div>`;
+            }).join('');
+
+            requestAnimationFrame(() =>
+                document.querySelectorAll('.b-bar').forEach(b => b.style.width = b.dataset.w + '%'));
+
+            $('battleNote').textContent = unassigned
+                ? `${unassigned} rep${unassigned === 1 ? ' is' : 's are'} unassigned and not counted — assign them in Manage below.`
+                : 'All four locations report from the combined tracker database.';
+        } catch (e) {
+            $('battleBody').innerHTML = '<div class="battle-loading">Could not load battle data. Check connection.</div>';
+        }
+    }
+    runBattle();
+
+    // ── manage panel ─────────────────────────────────────────────
+    $('manageToggle').addEventListener('click', async () => {
+        const panel = $('managePanel');
+        if (panel.style.display === 'block') { panel.style.display = 'none'; return; }
+        if (!manageUnlocked) {
+            const pinSnap = await db.ref('locationsPin').once('value');
+            const pin = pinSnap.val();
+            if (pin) {
+                const entered = prompt('Manager PIN:');
+                if (entered !== String(pin)) { toast('Wrong PIN'); return; }
+            }
+            manageUnlocked = true;
+        }
+        panel.style.display = 'block';
+        panel.scrollIntoView({ behavior:'smooth' });
+    });
+
+    $('addLocBtn').addEventListener('click', () => {
+        const name = $('newLocName').value.trim();
+        if (!name) { toast('Enter a name'); return; }
+        db.ref('locations').push({ name, region: $('newLocRegion').value.trim() || '', createdAt: Date.now() });
+        $('newLocName').value = ''; $('newLocRegion').value = '';
+        toast('Location added');
+    });
+
+    function renderManage() {
+        // rep assignment (Colorado excluded — their reps live in the Anywhere DB)
+        const assignable = Object.entries(locations)
+            .filter(([id, l]) => !l.archived && !l.external);
+        const opts = lid => `<option value=""${!lid ? ' selected' : ''}>— Shared (all) —</option>` +
+            assignable.map(([id, l]) => `<option value="${id}"${lid === id ? ' selected' : ''}>${escapeHtml(l.name)}</option>`).join('');
+
+        $('mpRepList').innerHTML = Object.entries(reps)
+            .filter(([, r]) => !r.archived)
+            .sort((a, b) => (a[1].name || '').localeCompare(b[1].name || ''))
+            .map(([id, r]) => `
+                <div class="mp-rep-row">
+                    <div>${escapeHtml(r.name || id)}</div>
+                    <select data-rep="${id}">${opts(r.locationId)}</select>
+                </div>`).join('') || '<div class="mp-note">No reps found.</div>';
+
+        $('mpRepList').querySelectorAll('select[data-rep]').forEach(sel =>
+            sel.addEventListener('change', () => {
+                if (sel.value) db.ref(`salespeople/${sel.dataset.rep}/locationId`).set(sel.value);
+                else db.ref(`salespeople/${sel.dataset.rep}/locationId`).remove();
+                toast('Assignment saved');
+                runBattle();
+            }));
+
+        // login assignment — a login only works at its assigned location
+        $('mpLoginList').innerHTML = Object.entries(logins)
+            .sort((a, b) => (a[1].username || '').localeCompare(b[1].username || ''))
+            .map(([id, l]) => `
+                <div class="mp-rep-row">
+                    <div>${escapeHtml(l.username || id)}${l.name ? ' <span style="color:var(--muted);font-size:12px">(' + escapeHtml(l.name) + ')</span>' : ''}${l.disabled ? ' <span style="color:var(--faint);font-size:11px">disabled</span>' : ''}</div>
+                    <select data-login="${id}">${opts(l.locationId)}</select>
+                </div>`).join('') || '<div class="mp-note">No tech logins yet — create them in Manager Portal → Tech Logins.</div>';
+
+        $('mpLoginList').querySelectorAll('select[data-login]').forEach(sel =>
+            sel.addEventListener('change', () => {
+                if (sel.value) db.ref(`techLogins/${sel.dataset.login}/locationId`).set(sel.value);
+                else db.ref(`techLogins/${sel.dataset.login}/locationId`).remove();
+                toast('Login assignment saved');
+            }));
+
+        // extra locations list (core four aren't archivable here)
+        $('mpLocList').innerHTML = Object.entries(locations)
+            .filter(([id, l]) => !BRANDS[id] && !l.archived)
+            .map(([id, l]) => `
+                <div class="mp-loc-item">
+                    <span>${escapeHtml(l.name)}${l.region ? ' — ' + escapeHtml(l.region) : ''}</span>
+                    <div style="display:flex;gap:8px">
+                        <button class="btn ghost" data-rename="${id}">Rename</button>
+                        <button class="btn ghost" data-archive="${id}">Archive</button>
+                    </div>
+                </div>`).join('') || '<div class="mp-note">No extra locations.</div>';
+
+        $('mpLocList').querySelectorAll('[data-rename]').forEach(b =>
+            b.addEventListener('click', () => {
+                const id = b.dataset.rename;
+                const name = prompt('New name:', locations[id].name);
+                if (name && name.trim()) db.ref(`locations/${id}/name`).set(name.trim());
+            }));
+        $('mpLocList').querySelectorAll('[data-archive]').forEach(b =>
+            b.addEventListener('click', () => {
+                const id = b.dataset.archive;
+                if (confirm(`Archive ${locations[id].name}?`)) db.ref(`locations/${id}/archived`).set(true);
+            }));
+    }
+</script>
+</body>
+</html>
