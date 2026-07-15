@@ -166,6 +166,14 @@
         .mp-loc-item { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--wire); }
         .mp-loc-item span { font-family:'Oswald',sans-serif; font-size:14px; letter-spacing:.06em; }
 
+        #importBox { border:1px solid var(--wire2); border-left:3px solid #2575fc; padding:16px; margin-top:10px; }
+        #importLog { margin-top:12px; background:#0d0d0d; border:1px solid var(--wire); padding:12px;
+                     font-family:ui-monospace,monospace; font-size:11px; line-height:1.7; white-space:pre-wrap;
+                     max-height:280px; overflow-y:auto; display:none; }
+        html.light #importLog { background:#f7f7f7; }
+        #importLog .ok{color:#4ade80}#importLog .warn{color:#eab308}#importLog .err{color:#f87171}#importLog .info{color:#60a5fa}
+        .imp-done { color:#4ade80; font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:.12em; text-transform:uppercase; }
+
         .toast {
             position:fixed; bottom:26px; left:50%; transform:translateX(-50%);
             background:var(--s2); border:1px solid #fff; color:var(--text);
@@ -256,6 +264,16 @@
         <div class="mp-section-title">Team Yearly Goals (each location owns its own)</div>
         <div id="mpGoalList"></div>
         <div class="mp-note">Each branch's yearly revenue goal, stored at locationData/&lt;location&gt;/teamYearlyGoals. The team <b>monthly</b> goal is computed automatically as the sum of that branch's reps' own monthly goals — nothing to set here.</div>
+
+        <div class="mp-section-title">Import Anywhere Rooter → Colorado</div>
+        <div id="importBox">
+            <div id="importStatus" class="mp-note" style="margin-top:0">Checking…</div>
+            <div class="mp-row" id="importBtns" style="margin-top:12px;display:none">
+                <button class="btn ghost" id="dryBtn">▶ Dry Run (read-only)</button>
+                <button class="btn" id="runBtn" disabled style="background:#2575fc;color:#fff">⚡ Import For Real</button>
+            </div>
+            <div id="importLog"></div>
+        </div>
 
         <div class="mp-section-title">Extra Locations</div>
         <div class="mp-row">
@@ -455,6 +473,7 @@
             manageUnlocked = true;
         }
         panel.style.display = 'block';
+        importStatus().catch(() => { $('importStatus').textContent = 'Could not reach the Anywhere Rooter database.'; });
         panel.scrollIntoView({ behavior:'smooth' });
     });
 
@@ -465,6 +484,106 @@
         $('newLocName').value = ''; $('newLocRegion').value = '';
         toast('Location added');
     });
+
+    // ── ANYWHERE ROOTER IMPORT ────────────────────────────────
+    // Same job the standalone migrate.html did, run from the tracker
+    // itself so it works on any device. Never touches the Anywhere DB.
+    const IMPORT_NODES = ['salespeople', 'callLogs', 'monthlyGoals', 'weeklyGoals', 'yearlyGoals'];
+    const arFetch = p => fetch(AR_DB_URL + '/' + p + '.json').then(r => r.json());
+    let importPlan = null;
+
+    function ilog(msg, cls) {
+        const el = $('importLog');
+        el.style.display = 'block';
+        el.innerHTML += (cls ? `<span class="${cls}">` : '') + msg + (cls ? '</span>' : '') + '\n';
+        el.scrollTop = el.scrollHeight;
+    }
+
+    async function importStatus() {
+        const done = (await db.ref('salespeople').once('value')).val() || {};
+        const already = Object.values(done).filter(r => r.locationId === 'colorado').length;
+        if (already) {
+            $('importStatus').innerHTML = `<span class="imp-done">✔ Imported — ${already} Colorado reps are in the tracker.</span><br>Run again only if something is missing; existing records are never overwritten.`;
+        } else {
+            $('importStatus').textContent = 'Copies the Anywhere Rooter tracker database into this one as the Colorado location: reps, call logs, personal goals, and their team yearly goal. The Anywhere database is never modified — it stays as your backup. Nothing already here is overwritten.';
+        }
+        $('importBtns').style.display = 'flex';
+    }
+
+    async function importDry() {
+        $('importLog').innerHTML = '';
+        ilog('── DRY RUN (read-only) ──', 'info');
+        importPlan = { updates: {}, skipped: 0 };
+
+        for (const node of IMPORT_NODES) {
+            const src = await arFetch(node) || {};
+            const dst = (await db.ref(node).once('value')).val() || {};
+            let copy = 0;
+            for (const [key, val] of Object.entries(src)) {
+                if (dst[key] !== undefined) { importPlan.skipped++; continue; }
+                importPlan.updates[node + '/' + key] =
+                    (node === 'salespeople' && val && typeof val === 'object')
+                        ? Object.assign({}, val, { locationId: 'colorado' })
+                        : val;
+                copy++;
+            }
+            ilog(`  ${node}: ${Object.keys(src).length} found → ${copy} to copy` +
+                 (Object.keys(src).length - copy ? ` (${Object.keys(src).length - copy} already here, skipped)` : ''),
+                 copy ? 'ok' : 'warn');
+        }
+
+        // team yearly goals are per-location now
+        const arYearly = await arFetch('teamYearlyGoals') || {};
+        const apYearly = (await db.ref('teamYearlyGoals').once('value')).val() || {};
+        const locData = (await db.ref('locationData').once('value')).val() || {};
+        ilog('\nTeam yearly goals:', 'info');
+        for (const [year, val] of Object.entries(arYearly)) {
+            if (((locData.colorado || {}).teamYearlyGoals || {})[year] !== undefined) { ilog(`  colorado ${year}: already set — skipped`, 'warn'); continue; }
+            importPlan.updates[`locationData/colorado/teamYearlyGoals/${year}`] = val;
+            ilog(`  colorado ${year}: $${Number(val).toLocaleString()} (from Anywhere Rooter)`, 'ok');
+        }
+        for (const [year, val] of Object.entries(apYearly)) {
+            if (((locData.utah || {}).teamYearlyGoals || {})[year] !== undefined) { ilog(`  utah ${year}: already set — skipped`, 'warn'); continue; }
+            importPlan.updates[`locationData/utah/teamYearlyGoals/${year}`] = val;
+            ilog(`  utah ${year}: $${Number(val).toLocaleString()} (seeded from the old company-wide goal — split with Arizona above)`, 'ok');
+        }
+
+        const reps = Object.entries(importPlan.updates).filter(([k]) => k.startsWith('salespeople/'));
+        if (reps.length) {
+            ilog('\nColorado reps to import:', 'info');
+            reps.forEach(([, v]) => ilog('  • ' + (v.name || '(unnamed)') + (v.archived ? ' (archived)' : '')));
+        }
+        ilog(`\nTotal paths to write: ${Object.keys(importPlan.updates).length}`, 'info');
+        ilog(Object.keys(importPlan.updates).length ? '\nLooks right? Hit IMPORT FOR REAL.' : '\nNothing to do — already imported.', 'ok');
+        $('runBtn').disabled = Object.keys(importPlan.updates).length === 0;
+    }
+
+    async function importRun() {
+        if (!importPlan) return;
+        const pin = (await db.ref('managerPin').once('value')).val();
+        if (pin && prompt('Enter manager PIN to confirm the import:') !== String(pin)) { ilog('\nWrong PIN — aborted.', 'err'); return; }
+        if (!confirm('Write ' + Object.keys(importPlan.updates).length + ' paths into this database?')) return;
+
+        $('runBtn').disabled = true; $('dryBtn').disabled = true;
+        ilog('\n── IMPORTING ──', 'info');
+        const entries = Object.entries(importPlan.updates), CHUNK = 150;
+        for (let i = 0; i < entries.length; i += CHUNK) {
+            const batch = {};
+            entries.slice(i, i + CHUNK).forEach(([k, v]) => batch[k] = v);
+            await db.ref().update(batch);
+            ilog(`  wrote ${Math.min(i + CHUNK, entries.length)} / ${entries.length}`, 'ok');
+        }
+        await db.ref('locations/colorado/external').remove();
+        await db.ref('locations/colorado').update({ name: 'Anywhere Rooter', region: 'Colorado', brand: 'anywhere' });
+        ilog('\n✔ IMPORT COMPLETE', 'ok');
+        ilog('Next: create logins for the Colorado reps in Manager Portal → Tech Logins,', 'info');
+        ilog('assign them to Colorado above, then point their crew at this tracker URL.', 'info');
+        $('dryBtn').disabled = false;
+        importStatus(); runBattle();
+    }
+
+    $('dryBtn').addEventListener('click', () => importDry().catch(e => ilog('ERROR: ' + e.message, 'err')));
+    $('runBtn').addEventListener('click', () => importRun().catch(e => ilog('ERROR: ' + e.message, 'err')));
 
     function renderManage() {
         // rep assignment (Colorado excluded — their reps live in the Anywhere DB)

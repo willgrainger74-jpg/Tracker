@@ -1,72 +1,72 @@
-ACTION ARMY — FOUR SEPARATE BRANCHES, ONE CODEBASE  (v5)
-=========================================================
-Your complete repo + the location system.
+ACTION ARMY — MULTI-LOCATION  (v6)
+===================================
+Your complete repo + the location system. No migrate.html anymore —
+the Anywhere Rooter import is built into locations.html now, so you
+run it from the tracker URL on any device (phone included).
 
-WHAT EACH LOCATION OWNS (fully separate)
------------------------------------------
-  Reps            salespeople filtered by locationId
-  Logins          techLogins filtered by locationId (pick branch, then sign in)
-  Team yearly goal   locationData/<location>/teamYearlyGoals/<year>
-  Team monthly goal  computed = sum of that branch's reps' monthly goals
-                     (so it scopes itself — nothing to configure)
-  Everything downstream: leaderboards, Team Report, turn-in,
-  workbooks, gym, doors, training — all built off the roster,
-  so they scope automatically.
+INSTALL
+-------
+1. Upload EVERYTHING in here to the repo root.
+2. Hard-refresh once (sw.js is network-first, but the first load after
+   a deploy can serve stale cache).
+3. Open locations.html -> the four tiles.
 
-Utah and Arizona are as separate from each other as Colorado and Idaho
-are. Same look (both use the 'action' brand), completely different data.
+PORTING ANYWHERE ROOTER OVER
+-----------------------------
+locations.html -> "Manage Locations & Rep Assignments" ->
+  "Import Anywhere Rooter -> Colorado"
+    1. Click "Dry Run (read-only)" - shows exactly what will copy.
+    2. Click "Import For Real" - asks for your manager PIN.
 
-STILL COMPANY-WIDE (shared by all four) — say the word to split these:
-  announcements, monthlyCompetition, competitionMeta, competitionFeed,
-  commissionRate, commissionTiers, huddleSummaries
+  What it copies (verified live, zero collisions):
+    13 reps (stamped locationId "colorado")
+    570 call-log day-nodes
+    21 monthly + 14 weekly + 8 yearly personal goals
+    their team yearly goal -> locationData/colorado/teamYearlyGoals ($1,080,000 for 2026)
+    seeds locationData/utah/teamYearlyGoals from the old company-wide $18,000,000
+  628 paths total, written in 5 batches.
 
-HOW SCOPING WORKS
------------------
-location-filter.js does two different things depending on the node:
+  The Anywhere Rooter database is NEVER modified - it stays as your
+  backup and their old tracker keeps working. Nothing already in your
+  database is overwritten. Safe to re-run: it skips anything already there.
 
-  FILTERED  (salespeople, techLogins) - children are objects, so the
-            shim hides any child whose locationId isn't yours. No
-            locationId at all = shared, visible everywhere.
+AFTER THE IMPORT
+----------------
+  - Manager Portal -> Tech Logins: create logins for the Colorado reps,
+    then assign them to Colorado in locations.html -> Manage.
+  - locations.html -> Manage -> Team Yearly Goals: split Utah's seeded
+    $18,000,000 between Utah and Arizona, and set Idaho's.
+  - Assign your existing reps and logins to Utah / Arizona.
+    (Unassigned = shared = works everywhere, so nobody gets locked out
+    mid-rollout.)
 
-  REDIRECTED (teamYearlyGoals) - children are plain numbers, nothing to
-            filter, so the whole path is rewritten instead:
-            a page asking for  teamYearlyGoals/2026
-            actually reads     locationData/utah/teamYearlyGoals/2026
-            Reads AND writes follow, so reports.html's goal input saves
-            to the right branch with zero page edits.
+WHAT EACH LOCATION OWNS
+------------------------
+  Reps, logins, team yearly goal - all per-location.
+  Team monthly goal computes itself (sum of that branch's reps' goals).
+  Leaderboards, Team Report, turn-in, workbooks, gym, doors, training
+  all build off the roster, so they scope automatically.
+  Utah and Arizona are as separate as Colorado and Idaho - same look,
+  different data.
 
-  To make another node per-location, add its name to SCOPED_PATHS at
-  the top of location-filter.js. One line.
+  Still shared by all four: announcements, monthlyCompetition,
+  competitionMeta, competitionFeed, commissionRate, commissionTiers,
+  huddleSummaries. (Add a node to SCOPED_PATHS in location-filter.js
+  to make it per-location - one line.)
 
 BRANDS
 ------
-BRANDS config at the top of location-filter.js = logo, colors (dark +
-light), font, wordmark swaps, hero word, chip color.
-LOCATION_BRAND maps: utah/arizona -> action, colorado -> anywhere,
-idaho -> american. The 'action' brand is empty on purpose = pages render
-exactly as authored, so Utah and Arizona are untouched.
+  BRANDS config at the top of location-filter.js = logo, colors, font,
+  wordmarks, hero word, chip. LOCATION_BRAND maps utah/arizona -> action,
+  colorado -> anywhere, idaho -> american. The 'action' brand is empty on
+  purpose, so Utah and Arizona render exactly as authored.
 
 FILES
 -----
 NEW: locations.html, location-filter.js, logo-anywhere.png, logo-american.png
-     migrate.html  <- ONE-TIME. DO NOT UPLOAD. Run locally, then delete.
 UPDATED (one script line each): index, calls, goals, reports, manager,
-     turnin, training, gym, doors, money, competition,
-     action_workbook, team_workbook
+  turnin, training, gym, doors, money, competition, action_workbook,
+  team_workbook
 UNTOUCHED: inspection.html (fleet Firebase), icons, manifest.json, sw.js,
-     auth.js, checklists.js, alerts-config.js, firebase-config.js,
-     favicon, actionsite-logo.png
-
-INSTALL
--------
-1. Upload everything EXCEPT migrate.html to the repo root.
-2. Hard-refresh once (sw.js is network-first, but the first load after a
-   deploy can serve stale cache).
-3. Click each tile - all read-only, safe.
-4. When ready: run migrate.html LOCALLY (Dry Run first). It imports
-   Colorado's real team goal ($1,080,000 for 2026) and seeds Utah's from
-   the current company-wide $18,000,000.
-5. locations.html -> Manage:
-   - assign reps and logins to branches
-   - set the team yearly goal for Arizona and Idaho, and split Utah's
-     seeded goal between Utah and Arizona
+  auth.js, checklists.js, alerts-config.js, firebase-config.js, favicon,
+  actionsite-logo.png
