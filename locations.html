@@ -167,11 +167,12 @@
         .mp-loc-item span { font-family:'Oswald',sans-serif; font-size:14px; letter-spacing:.06em; }
 
         #importBox { border:1px solid var(--wire2); border-left:3px solid #2575fc; padding:16px; margin-top:10px; }
-        #importLog { margin-top:12px; background:#0d0d0d; border:1px solid var(--wire); padding:12px;
+        #importLog, #azLog { margin-top:12px; background:#0d0d0d; border:1px solid var(--wire); padding:12px;
                      font-family:ui-monospace,monospace; font-size:11px; line-height:1.7; white-space:pre-wrap;
                      max-height:280px; overflow-y:auto; display:none; }
-        html.light #importLog { background:#f7f7f7; }
-        #importLog .ok{color:#4ade80}#importLog .warn{color:#eab308}#importLog .err{color:#f87171}#importLog .info{color:#60a5fa}
+        html.light #importLog, html.light #azLog { background:#f7f7f7; }
+        #importLog .ok,#azLog .ok{color:#4ade80}#importLog .warn,#azLog .warn{color:#eab308}
+        #importLog .err,#azLog .err{color:#f87171}#importLog .info,#azLog .info{color:#60a5fa}
         .imp-done { color:#4ade80; font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:.12em; text-transform:uppercase; }
 
         .toast {
@@ -273,6 +274,16 @@
                 <button class="btn" id="runBtn" disabled style="background:#2575fc;color:#fff">⚡ Import For Real</button>
             </div>
             <div id="importLog"></div>
+        </div>
+
+        <div class="mp-section-title">Import Manus Hub → Arizona</div>
+        <div id="importBox" style="border-left-color:#cc1818">
+            <div id="azStatus" class="mp-note" style="margin-top:0">Checking…</div>
+            <div class="mp-row" id="azBtns" style="margin-top:12px;display:none">
+                <button class="btn ghost" id="azDryBtn">▶ Dry Run (read-only)</button>
+                <button class="btn" id="azRunBtn" disabled style="background:#cc1818;color:#fff">⚡ Import For Real</button>
+            </div>
+            <div id="azLog"></div>
         </div>
 
         <div class="mp-section-title">Extra Locations</div>
@@ -474,6 +485,7 @@
         }
         panel.style.display = 'block';
         importStatus().catch(() => { $('importStatus').textContent = 'Could not reach the Anywhere Rooter database.'; });
+        azStatus().catch(() => { $('azStatus').textContent = 'Could not check Arizona import status.'; });
         panel.scrollIntoView({ behavior:'smooth' });
     });
 
@@ -584,6 +596,104 @@
 
     $('dryBtn').addEventListener('click', () => importDry().catch(e => ilog('ERROR: ' + e.message, 'err')));
     $('runBtn').addEventListener('click', () => importRun().catch(e => ilog('ERROR: ' + e.message, 'err')));
+
+    // ── MANUS HUB → ARIZONA IMPORT ────────────────────────────
+    // The Manus API sends no CORS headers, so the browser can't read it
+    // from here. The data was pulled server-side and pre-mapped to this
+    // tracker's exact schema in arizona-import.json (a snapshot — re-pull
+    // it if Arizona keeps logging in Manus). This just writes it in.
+    const AZ_FILE = 'arizona-import.json';
+    let azPlan = null, azData = null;
+
+    function azlog(msg, cls) {
+        const el = $('azLog');
+        el.style.display = 'block';
+        el.innerHTML += (cls ? `<span class="${cls}">` : '') + msg + (cls ? '</span>' : '') + '\n';
+        el.scrollTop = el.scrollHeight;
+    }
+
+    async function azStatus() {
+        const done = (await db.ref('salespeople').once('value')).val() || {};
+        const already = Object.values(done).filter(r => r.locationId === 'arizona').length;
+        $('azStatus').innerHTML = already
+            ? `<span class="imp-done">✔ Imported — ${already} Arizona reps are in the tracker.</span><br>Safe to re-run; existing records are skipped.`
+            : 'Brings the Arizona data over from the Manus "Action Hub" app: reps, call logs, personal goals, and the team yearly goal — remapped to this tracker\'s schema. The Manus app is never modified. Nothing already here is overwritten.';
+        $('azBtns').style.display = 'flex';
+    }
+
+    async function azDry() {
+        $('azLog').innerHTML = '';
+        azlog('── DRY RUN (read-only) ──', 'info');
+        if (!azData) {
+            try { azData = await fetch(AZ_FILE + '?v=' + Date.now()).then(r => r.json()); }
+            catch (e) { azlog('Could not load ' + AZ_FILE + ' — make sure it is uploaded to the repo.', 'err'); return; }
+        }
+        azlog(`Snapshot from ${azData.source}`);
+        azlog(`Pulled ${new Date(azData.generatedAt).toLocaleString()} · covers ${azData.stats.range[0]} → ${azData.stats.range[1]}\n`);
+
+        azPlan = { updates: {}, skipped: 0 };
+        for (const node of ['salespeople', 'monthlyGoals', 'weeklyGoals', 'yearlyGoals']) {
+            const dst = (await db.ref(node).once('value')).val() || {};
+            let copy = 0;
+            for (const [key, val] of Object.entries(azData[node] || {})) {
+                if (dst[key] !== undefined) { azPlan.skipped++; continue; }
+                azPlan.updates[node + '/' + key] = val; copy++;
+            }
+            azlog(`  ${node}: ${copy} to copy` + (Object.keys(azData[node] || {}).length - copy ? ` (${Object.keys(azData[node] || {}).length - copy} already here)` : ''), copy ? 'ok' : 'warn');
+        }
+        const dstLogs = (await db.ref('callLogs').once('value')).val() || {};
+        let days = 0, indiv = 0;
+        for (const [dayKey, node] of Object.entries(azData.callLogs || {})) {
+            const existing = dstLogs[dayKey] || {};
+            let any = false;
+            for (const [cid, call] of Object.entries(node)) {
+                if (existing[cid] !== undefined) { azPlan.skipped++; continue; }
+                azPlan.updates[`callLogs/${dayKey}/${cid}`] = call; indiv++; any = true;
+            }
+            if (any) days++;
+        }
+        azlog(`  callLogs: ${indiv} calls across ${days} days`, indiv ? 'ok' : 'warn');
+
+        const locData = (await db.ref('locationData/arizona/teamYearlyGoals').once('value')).val() || {};
+        if (azData.teamYearlyGoal && locData['2026'] === undefined) {
+            azPlan.updates['locationData/arizona/teamYearlyGoals/2026'] = azData.teamYearlyGoal;
+            azlog(`  team yearly goal 2026: $${azData.teamYearlyGoal.toLocaleString()}`, 'ok');
+        } else if (azData.teamYearlyGoal) azlog('  team yearly goal 2026: already set — skipped', 'warn');
+
+        azlog('\nReps coming over:', 'info');
+        for (const [id, r] of Object.entries(azData.salespeople || {})) {
+            if (azPlan.updates['salespeople/' + id]) azlog('  • ' + r.name + (r.archived ? ' (archived)' : ''));
+        }
+        azlog(`\nRevenue in this snapshot: $${azData.stats.revenue.toLocaleString()}`, 'info');
+        azlog(`Total paths to write: ${Object.keys(azPlan.updates).length}` + (azPlan.skipped ? ` · ${azPlan.skipped} already here, skipped` : ''), 'info');
+        azlog(Object.keys(azPlan.updates).length ? '\nLooks right? Hit IMPORT FOR REAL.' : '\nNothing to do — already imported.', 'ok');
+        $('azRunBtn').disabled = Object.keys(azPlan.updates).length === 0;
+    }
+
+    async function azRun() {
+        if (!azPlan) return;
+        const pin = (await db.ref('managerPin').once('value')).val();
+        if (pin && prompt('Enter manager PIN to confirm the import:') !== String(pin)) { azlog('\nWrong PIN — aborted.', 'err'); return; }
+        if (!confirm('Write ' + Object.keys(azPlan.updates).length + ' paths into this database?')) return;
+
+        $('azRunBtn').disabled = true; $('azDryBtn').disabled = true;
+        azlog('\n── IMPORTING ──', 'info');
+        const entries = Object.entries(azPlan.updates), CHUNK = 150;
+        for (let i = 0; i < entries.length; i += CHUNK) {
+            const batch = {};
+            entries.slice(i, i + CHUNK).forEach(([k, v]) => batch[k] = v);
+            await db.ref().update(batch);
+            azlog(`  wrote ${Math.min(i + CHUNK, entries.length)} / ${entries.length}`, 'ok');
+        }
+        azlog('\n✔ IMPORT COMPLETE', 'ok');
+        azlog('Next: create logins for the Arizona reps in Manager Portal → Tech Logins,', 'info');
+        azlog('assign them to Arizona above, and check the House Account rep is how you want it.', 'info');
+        $('azDryBtn').disabled = false;
+        azStatus(); runBattle();
+    }
+
+    $('azDryBtn').addEventListener('click', () => azDry().catch(e => azlog('ERROR: ' + e.message, 'err')));
+    $('azRunBtn').addEventListener('click', () => azRun().catch(e => azlog('ERROR: ' + e.message, 'err')));
 
     function renderManage() {
         // rep assignment (Colorado excluded — their reps live in the Anywhere DB)
