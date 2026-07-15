@@ -46,12 +46,12 @@
     var THEMES = {
         // American Rooter & Drain (idahosplumber.com): navy #0a3161, red #b71e29
         american: {
-            css: ':root{--red:#b71e29;--red2:#8f1720;--red3:#12233f;' +
+            css: 'html:root{--red:#b71e29;--red2:#8f1720;--red3:#12233f;' +
                  '--gold:#5b8fd6;--gold2:#3d6bb0;' +
                  '--bg:#060d1a;--s1:#0c1830;--s2:#112040;--s3:#182b52;--s4:#1f3765;' +
                  '--wire:rgba(210,225,255,0.10);--wire2:rgba(210,225,255,0.17);' +
                  '--muted:#8ea3c4;--faint:#42557a;--text:#f2f6ff;}' +
-                 'html.light{--red:#b71e29;--red2:#8f1720;--red3:#e8eef8;' +
+                 'html.light:root{--red:#b71e29;--red2:#8f1720;--red3:#e8eef8;' +
                  '--gold:#3d6bb0;--gold2:#2c5290;' +
                  '--bg:#f2f5fa;--s1:#ffffff;--s2:#e8edf5;--s3:#dde5f0;--s4:#d0dbec;' +
                  '--wire:rgba(10,49,97,0.10);--wire2:rgba(10,49,97,0.18);' +
@@ -68,12 +68,12 @@
         },
         // Anywhere Rooter (anywhererooter.com build): navy + #2575fc, Barlow Condensed
         anywhere: {
-            css: ':root{--red:#2575fc;--red2:#173997;--red3:#0b1c4d;' +
+            css: 'html:root{--red:#2575fc;--red2:#173997;--red3:#0b1c4d;' +
                  '--gold:#0AA2FF;--gold2:#067ec7;' +
                  '--bg:#0a102a;--s1:#101a3d;--s2:#14224c;--s3:#1b2b5e;--s4:#24356e;' +
                  '--wire:rgba(190,210,255,0.10);--wire2:rgba(190,210,255,0.17);' +
                  '--muted:#a9b6dd;--faint:#5b6a99;--text:#f0f4ff;}' +
-                 'html.light{--red:#2575fc;--red2:#173997;--red3:#dbe6ff;' +
+                 'html.light:root{--red:#2575fc;--red2:#173997;--red3:#dbe6ff;' +
                  '--gold:#067ec7;--gold2:#056aa8;' +
                  '--bg:#eff3ff;--s1:#ffffff;--s2:#e4ebfa;--s3:#d8e2f5;--s4:#c9d7f0;' +
                  '--wire:rgba(23,57,151,0.10);--wire2:rgba(23,57,151,0.18);' +
@@ -98,6 +98,18 @@
         css.id = 'ap-brand-theme';
         css.textContent = theme.css;
         (document.head || document.documentElement).appendChild(css);
+        // The page's own <style> block is parsed AFTER this script runs, so an
+        // equal-specificity :root would lose the cascade. We use html:root
+        // selectors above AND re-append at DOMContentLoaded so this style tag
+        // also ends up last in the head. Belt and suspenders.
+        function pinThemeLast() {
+            try {
+                if (css.parentNode !== document.head) document.head.appendChild(css);
+                else document.head.appendChild(css); // move to end
+            } catch (e) { }
+        }
+        document.addEventListener('DOMContentLoaded', pinThemeLast);
+        setTimeout(pinThemeLast, 0);
 
         // font swap (Anywhere): load the brand font, then rewrite
         // same-origin stylesheet rules + inline styles that use the old one
