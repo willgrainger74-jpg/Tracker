@@ -126,15 +126,18 @@
     if (path.indexOf('migrate.html') !== -1) return;
     if (path.indexOf('inspection.html') !== -1) return; // fleet Firebase
 
+    /* The chosen location lives in sessionStorage, not localStorage — on
+       purpose. sessionStorage dies when the app or tab is closed, so every
+       fresh launch starts at the hub and nobody is silently dropped into
+       whichever branch they used last. In-app navigation keeps the session,
+       so moving between pages never re-asks. */
     var loc = null;
-    try { loc = JSON.parse(localStorage.getItem('apLocation')); } catch (e) { loc = null; }
+    try { loc = JSON.parse(sessionStorage.getItem('apLocation')); } catch (e) { loc = null; }
 
     if (!loc || !loc.id) {
-        if (path.indexOf('index.html') !== -1 || /\/$/.test(path)) {
-            location.replace('locations.html');
-            return;
-        }
-        loc = { id: 'all', name: 'All Locations' };
+        /* no location this session -> the hub, from whatever page they landed on */
+        location.replace('locations.html');
+        return;
     }
 
     var LOC_ID     = loc.id;
@@ -374,24 +377,50 @@
     });
 
     /* ─────────────────────────────────────────────────────────────────
-       4. THE SWITCHER CHIP
+       4. iPHONE SAFE AREA + THE SWITCHER CHIP
+
+       The pages use viewport-fit=cover with a black-translucent status
+       bar, so once installed to the home screen the web view runs edge to
+       edge — right up under the notch. The bottom was already handled
+       (the tab bar pads with safe-area-inset-bottom); the top never was,
+       which put the theme toggle under the iPhone status bar where it
+       can't be tapped. These two rules fix it everywhere at once:
+         body            -> pushes flowing content below the status bar
+         #themeToggleWrap-> it's position:fixed, so body padding can't
+                            move it; it needs the inset itself
+       Both are 0px in a normal browser and on non-notch devices.
        ───────────────────────────────────────────────────────────────── */
+    var safeCss = document.createElement('style');
+    safeCss.id = 'ap-safe-area';
+    safeCss.textContent =
+        'body{padding-top:env(safe-area-inset-top);}' +
+        '#themeToggleWrap{top:calc(12px + env(safe-area-inset-top))!important;}' +
+        '#ap-loc-chip{font-family:Oswald,sans-serif;font-size:11px;font-weight:600;' +
+        'letter-spacing:.12em;text-transform:uppercase;text-decoration:none;' +
+        'padding:7px 12px;display:flex;align-items:center;gap:6px;white-space:nowrap;' +
+        'border:1px solid ' + (B.chip || '#dc2626') + ';color:' + (B.chip || '#dc2626') + ';' +
+        'background:var(--s2,rgba(0,0,0,.8));}' +
+        '#ap-loc-chip.ap-floating{position:fixed;z-index:99995;' +
+        'top:calc(12px + env(safe-area-inset-top));right:16px;backdrop-filter:blur(4px);}';
+    (document.head || document.documentElement).appendChild(safeCss);
+    var pinSafeLast = function () { try { if (document.head) document.head.appendChild(safeCss); } catch (e) {} };
+    document.addEventListener('DOMContentLoaded', pinSafeLast);
+
     function injectChip() {
         if (document.getElementById('ap-loc-chip')) return;
-        var isLight = document.documentElement.classList.contains('light');
         var a = document.createElement('a');
         a.id = 'ap-loc-chip';
         a.href = 'locations.html';
         a.title = 'Switch location';
         a.textContent = '◆ ' + (loc.name || 'All Locations');
-        a.style.cssText =
-            'position:fixed;top:10px;right:12px;z-index:99995;' +
-            'font-family:Oswald,sans-serif;font-size:10px;font-weight:600;' +
-            'letter-spacing:.16em;text-transform:uppercase;text-decoration:none;' +
-            'padding:6px 12px;border:1px solid ' + (B.chip || '#dc2626') + ';color:' + (B.chip || '#dc2626') + ';' +
-            'background:' + (isLight ? 'rgba(255,255,255,.9)' : 'rgba(0,0,0,.8)') + ';' +
-            'backdrop-filter:blur(4px);';
-        document.body.appendChild(a);
+
+        /* The theme toggle already owns the top-right corner and is a
+           row-reverse flex row, so dropping the chip inside it puts the two
+           side by side instead of stacked on top of each other — and the
+           chip inherits the safe-area fix for free. */
+        var wrap = document.getElementById('themeToggleWrap');
+        if (wrap) wrap.appendChild(a);
+        else { a.className = 'ap-floating'; document.body.appendChild(a); }
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', injectChip);
     else injectChip();

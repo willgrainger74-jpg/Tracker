@@ -33,7 +33,11 @@
             content:''; position:fixed; inset:0; pointer-events:none; z-index:1;
             background:repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px);
         }
-        .page { max-width:860px; margin:0 auto; padding:0 20px 90px; position:relative; z-index:2; }
+        .page {
+            max-width:860px; margin:0 auto; position:relative; z-index:2;
+            /* installed to a home screen this runs under the iPhone status bar */
+            padding:env(safe-area-inset-top) 20px calc(90px + env(safe-area-inset-bottom));
+        }
 
         /* ── neutral hero ── */
         .hero { padding:44px 0 34px; text-align:center; }
@@ -367,7 +371,18 @@
 
     // ── tile wiring ──────────────────────────────────────────────
     function enter(id, name, brand) {
-        localStorage.setItem('apLocation', JSON.stringify({ id, name, brand }));
+        // Switching branches must not carry a signed-in rep across — logins are
+        // location-specific, so a Utah session has no business in Colorado.
+        // Same branch as last time? Keep them signed in.
+        if (localStorage.getItem('apLastLocation') !== id) {
+            localStorage.removeItem('ap_session');
+            localStorage.removeItem('selectedPerson');
+        }
+        localStorage.setItem('apLastLocation', id);
+        // sessionStorage, not localStorage: closing the app clears it, so the
+        // next launch always starts here at the hub instead of jumping into
+        // whichever branch was used last.
+        sessionStorage.setItem('apLocation', JSON.stringify({ id, name, brand }));
         window.location.href = 'index.html';
     }
     document.querySelectorAll('.tile[data-brand]').forEach(t =>

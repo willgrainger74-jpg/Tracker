@@ -1,63 +1,56 @@
-THE ACTION GROUP TRACKER  (v8)
+THE ACTION GROUP TRACKER  (v9)
 ===============================
-New in v8: Action Group branding on the location hub + the whole thing
-installs to a phone home screen as "Action Group" with the AG badge icon.
+Fixes the two home-screen problems.
 
-THE HUB (locations.html)
--------------------------
-  AG badge logo, then "THE ACTION GROUP TRACKER", then "Select your
-  location" over the four tiles. Neutral black & white - the branding
-  only changes once you pick a location.
+1. TOP BUTTONS UNDER THE iPHONE STATUS BAR — FIXED
+---------------------------------------------------
+  Cause: the pages use viewport-fit=cover with a black-translucent
+  status bar, so once installed the web view runs edge to edge, right up
+  under the notch. The BOTTOM was already handled (the tab bar pads with
+  safe-area-inset-bottom) but the TOP never was. The theme toggle sits at
+  a fixed top:12px, which lands under the status bar and can't be tapped.
+  Worse: the location chip was also fixed top-right, so the two were
+  stacked on each other.
 
-ADD TO HOME SCREEN
-------------------
-  iPhone/Safari : open the tracker -> Share -> Add to Home Screen
-  Android/Chrome: open the tracker -> menu -> Install app / Add to Home screen
-  It installs as "Action Group" with the AG badge, opens full screen
-  (no browser bars), and long-pressing the icon gives a "Switch Location"
-  shortcut on Android.
+  Fix (all from location-filter.js, no page edits):
+    body            padding-top: env(safe-area-inset-top)
+                    -> pushes normal content below the status bar
+    #themeToggleWrap top: calc(12px + env(safe-area-inset-top))
+                    -> it's position:fixed, so body padding can't move it
+    the location chip is now injected INSIDE #themeToggleWrap, which is a
+    row-reverse flex row -> chip and theme button sit side by side instead
+    of on top of each other, and the chip inherits the inset for free.
+  All of these are 0px in a normal browser and on non-notch devices, so
+  nothing changes on desktop or Android.
+  locations.html got the same treatment in its own CSS.
 
-  If you already had the old Action Tracker installed, DELETE it from the
-  home screen and re-add it - phones cache the old icon and name hard.
-  (The service worker cache was bumped to action-group-v3 to help.)
+2. ALWAYS OPEN TO THE LOCATION PICKER — FIXED
+----------------------------------------------
+  The chosen location now lives in sessionStorage instead of localStorage.
+  sessionStorage is wiped when the app or tab closes, so:
+    - every launch / every fresh open of the link -> the hub
+    - moving between pages inside the app -> keeps your location, never
+      re-asks
+  Any page opened without a location (deep link, bookmark, old shortcut)
+  bounces to the hub too, not just index.html.
+  manifest start_url is now locations.html, so the installed app opens
+  straight at the hub with no redirect flash.
 
-ICONS
------
-  Every icon-*.png + favicon.ico regenerated from the AG badge:
-  white badge on #080808, sized to 80% of the frame so the outer ring
-  stays inside the maskable safe zone (Android crops icons to a circle
-  or squircle - a full-bleed circular badge would lose its edge).
-  ag-logo.png is the transparent version used in the hub hero.
-  actionsite-logo.png is untouched - Utah/Arizona pages still use it.
-
-  Replacing the logo later: drop in a new ag-logo.png and new icon-*.png
-  files. Nothing else references them by anything but filename.
-
-MANIFEST
---------
-  name       : The Action Group Tracker
-  short_name : Action Group
-  start_url  : index.html  (returning users land in their location;
-               first-timers get bounced to the hub automatically)
-  scope      : ./          (relative now, so it works under any repo name,
-               unlike the old hardcoded /action-sales/ paths)
+  Bonus fix: switching to a DIFFERENT branch now clears the login session
+  (ap_session + selectedPerson). Logins are location-specific, so a Utah
+  session had no business carrying into Colorado. Picking the SAME branch
+  you used last keeps you signed in.
 
 INSTALL
 -------
-1. Upload EVERYTHING here to the repo root, replacing the old icon-*.png,
-   favicon.ico, manifest.json and sw.js.
-2. Hard-refresh once.
-3. Delete + re-add the home screen app to pick up the new icon and name.
+1. Upload everything to the repo root.
+2. Hard-refresh (SW cache bumped to action-group-v4).
+3. On the phone: delete the home-screen app and re-add it. The old install
+   has the old start_url and icon baked in.
 
-EVERYTHING ELSE (unchanged from v7)
+EVERYTHING ELSE (unchanged from v8)
 ------------------------------------
-  Four locations: Action Utah, Action Arizona, Anywhere Rooter (Colorado),
-  American Rooter & Drain (Idaho). Separate reps, logins and team goals;
-  Utah/Arizona share the Action look. Location Battle on the hub.
-  Manage panel: rep + login assignment, team yearly goals, the
-  Anywhere Rooter -> Colorado import, and the Manus -> Arizona import
-  (422 calls / $1,083,848 / 9 reps, from arizona-import.json).
-  Brand engine: BRANDS config at the top of location-filter.js.
-  Still shared by all four: announcements, monthlyCompetition,
-  competitionMeta, competitionFeed, commissionRate, commissionTiers,
-  huddleSummaries.
+  Action Group branding + AG badge icon, four locations with separate
+  reps/logins/team goals, brand skins per location, Location Battle,
+  Manage panel (assignments, team goals, Anywhere->Colorado import,
+  Manus->Arizona import).
