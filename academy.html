@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0a0a">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="favicon.ico">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Action Group">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Action Group Training Academy</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="location-filter.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{
+            --bg:#0a0a0a;--s1:#141414;--s2:#1a1a1a;--s3:#232323;--s4:#2e2e2e;
+            --wire:rgba(255,255,255,.09);--wire2:rgba(255,255,255,.16);
+            --muted:#777;--faint:#3a3a3a;--text:#f0f0f0;--red:#dc2626;
+        }
+        html.light{--bg:#f4f4f4;--s1:#fff;--s2:#ebebeb;--s3:#e0e0e0;--s4:#d4d4d4;
+            --wire:rgba(0,0,0,.08);--wire2:rgba(0,0,0,.14);--muted:#555;--faint:#999;--text:#111}
+        html.light body::after{display:none}
+        body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;
+            padding-top:env(safe-area-inset-top)}
+        body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:1;
+            background:repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 3px)}
+        .page{max-width:1180px;margin:0 auto;padding:0 20px calc(90px + env(safe-area-inset-bottom));position:relative;z-index:2}
+
+        /* ── header ── */
+        .ac-head{display:flex;align-items:center;gap:16px;padding:26px 0 22px;border-bottom:1px solid var(--wire);margin-bottom:26px}
+        .ac-logo{width:56px;height:56px;flex:none}
+        .ac-title{flex:1;min-width:0}
+        .ac-title h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(26px,4.6vw,36px);letter-spacing:2px;line-height:1}
+        .ac-title h1 span{color:var(--muted)}
+        .ac-title p{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-top:5px}
+        .ac-actions{display:flex;gap:8px;align-items:center;flex:none}
+
+        .btn{background:#fff;border:none;color:#0a0a0a;font-family:'Oswald',sans-serif;font-size:11px;
+            font-weight:600;letter-spacing:.14em;text-transform:uppercase;padding:9px 16px;cursor:pointer;
+            display:inline-flex;align-items:center;gap:6px}
+        .btn:hover{background:#ddd}
+        .btn.ghost{background:none;border:1px solid var(--wire2);color:var(--muted)}
+        .btn.ghost:hover{color:var(--text);border-color:var(--text)}
+        .btn.danger{background:none;border:1px solid rgba(220,38,38,.5);color:#f87171}
+        .btn.danger:hover{background:var(--red);color:#fff;border-color:var(--red)}
+        .btn.sm{padding:6px 11px;font-size:10px}
+
+        /* ── breadcrumb ── */
+        .crumb{display:flex;align-items:center;gap:10px;margin-bottom:18px;font-family:'Oswald',sans-serif;
+            font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+        .crumb a{color:var(--muted);text-decoration:none}
+        .crumb a:hover{color:var(--text)}
+
+        /* ── grids ── */
+        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+        .cat{background:var(--s1);border:1px solid var(--wire);cursor:pointer;overflow:hidden;
+            transition:transform .13s,border-color .15s;text-align:left;color:var(--text);padding:0;display:block;width:100%}
+        .cat:hover{transform:translateY(-3px);border-color:var(--wire2)}
+        .cat-img{aspect-ratio:16/9;background:var(--s3);position:relative;overflow:hidden;display:flex;
+            align-items:center;justify-content:center}
+        .cat-img img{width:100%;height:100%;object-fit:cover;display:block}
+        .cat-img .ph{font-size:34px;opacity:.25}
+        .cat-body{padding:14px 16px 16px}
+        .cat-name{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;line-height:1.05}
+        .cat-desc{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.45;
+            display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+        .cat-meta{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+            color:var(--faint);margin-top:10px;display:flex;justify-content:space-between;align-items:center}
+
+        /* ── videos ── */
+        .vid{background:var(--s1);border:1px solid var(--wire);cursor:pointer;overflow:hidden;
+            transition:transform .13s,border-color .15s;text-align:left;color:var(--text);padding:0;width:100%;display:block}
+        .vid:hover{transform:translateY(-3px);border-color:var(--wire2)}
+        .vid-thumb{aspect-ratio:16/9;background:var(--s3);position:relative;overflow:hidden;display:flex;
+            align-items:center;justify-content:center}
+        .vid-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+        .vid-thumb .play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+            background:rgba(0,0,0,.3);font-size:34px;opacity:.9}
+        .vid:hover .play{background:rgba(0,0,0,.15)}
+        .vid-body{padding:12px 14px 14px}
+        .vid-title{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:.04em;line-height:1.3}
+        .vid-desc{font-size:11px;color:var(--muted);margin-top:4px;
+            display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+        .vid-kind{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+            color:var(--faint);margin-top:8px}
+
+        .empty{border:1px dashed var(--wire2);background:var(--s1);padding:52px 24px;text-align:center;color:var(--muted)}
+        .empty .big{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1.5px;color:var(--text);margin-bottom:6px}
+        .empty p{font-size:13px;max-width:420px;margin:0 auto}
+
+        /* ── player ── */
+        .modal{position:fixed;inset:0;z-index:99997;background:rgba(0,0,0,.88);display:none;
+            align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
+        .modal.on{display:flex}
+        .modal-box{background:var(--s1);border:1px solid var(--wire2);width:min(960px,100%);max-height:92vh;overflow-y:auto}
+        .modal-head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--wire)}
+        .modal-head h3{font-family:'Bebas Neue',sans-serif;font-size:21px;letter-spacing:1px;flex:1;min-width:0}
+        .modal-x{background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;padding:0 4px}
+        .modal-x:hover{color:var(--text)}
+        .player{aspect-ratio:16/9;background:#000;width:100%}
+        .player iframe,.player video{width:100%;height:100%;border:0;display:block}
+        .modal-desc{padding:14px 16px;font-size:13px;color:var(--muted);line-height:1.6;white-space:pre-wrap}
+
+        /* ── manage ── */
+        .mg-bar{background:var(--s2);border:1px solid var(--wire2);border-left:3px solid #fff;
+            padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+        .mg-bar .lbl{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;flex:1}
+        label.f{display:block;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.16em;
+            text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+        input[type=text],input[type=password],textarea,select{width:100%;background:var(--s2);
+            border:1px solid var(--wire2);color:var(--text);padding:10px 12px;font-family:'Inter',sans-serif;
+            font-size:14px;outline:none}
+        input:focus,textarea:focus{border-color:#fff}
+        textarea{resize:vertical;min-height:70px}
+        .drop{border:1px dashed var(--wire2);background:var(--s2);padding:22px;text-align:center;
+            cursor:pointer;color:var(--muted);font-size:12px}
+        .drop:hover{border-color:#fff;color:var(--text)}
+        .thumb-prev{position:relative;display:none}
+        .thumb-prev img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;border:1px solid var(--wire2)}
+        .row{display:flex;gap:8px;margin-top:18px}
+        .hint{font-size:11px;color:var(--faint);margin-top:6px;line-height:1.5}
+        .cat-admin{display:flex;gap:6px;padding:0 16px 14px}
+        .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:var(--s2);
+            border:1px solid #fff;padding:12px 22px;font-family:'Oswald',sans-serif;font-size:12px;
+            letter-spacing:.14em;text-transform:uppercase;z-index:99999;display:none}
+        @media(max-width:520px){.ac-head{gap:11px}.ac-logo{width:42px;height:42px}}
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="ac-head">
+        <img class="ac-logo" src="ag-logo.png" alt="">
+        <div class="ac-title">
+            <h1>ACTION GROUP <span>TRAINING ACADEMY</span></h1>
+            <p>Tactical Training for the Trades</p>
+        </div>
+        <div class="ac-actions">
+            <a href="locations.html" class="btn ghost sm">← Hub</a>
+            <button class="btn sm" id="manageBtn">⚙ Manage</button>
+        </div>
+    </div>
+
+    <div id="mgBar" class="mg-bar" style="display:none">
+        <span class="lbl">Manage mode — editing is live</span>
+        <button class="btn sm" id="addCatBtn">+ Add Category</button>
+        <button class="btn ghost sm" id="addVidBtn" style="display:none">+ Add Video</button>
+        <button class="btn ghost sm" id="exitMgBtn">Done</button>
+    </div>
+
+    <div id="crumb" class="crumb" style="display:none">
+        <a href="#" id="crumbHome">All Categories</a><span>/</span><span id="crumbCat"></span>
+    </div>
+
+    <div id="view"></div>
+</div>
+
+<!-- player -->
+<div class="modal" id="player">
+    <div class="modal-box">
+        <div class="modal-head"><h3 id="plTitle"></h3><button class="modal-x" data-close>×</button></div>
+        <div class="player" id="plBody"></div>
+        <div class="modal-desc" id="plDesc"></div>
+    </div>
+</div>
+
+<!-- category / video editor -->
+<div class="modal" id="editor">
+    <div class="modal-box" style="max-width:560px">
+        <div class="modal-head"><h3 id="edTitle">Add Category</h3><button class="modal-x" data-close>×</button></div>
+        <div style="padding:4px 16px 18px" id="edBody"></div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    if (localStorage.getItem('apTheme') === 'light') document.documentElement.classList.add('light');
+
+    firebase.initializeApp({
+        apiKey: "AIzaSyD9POKxbl9hSt2FNtzdv3RPVnAb0wWsNbU",
+        authDomain: "action-sales-tracker.firebaseapp.com",
+        databaseURL: "https://action-sales-tracker-default-rtdb.firebaseio.com",
+        projectId: "action-sales-tracker",
+        storageBucket: "action-sales-tracker.firebasestorage.app",
+        messagingSenderId: "686455834332",
+        appId: "1:686455834332:web:84e9b843f912522bbdd619"
+    });
+    const db = firebase.database();
+    const $ = id => document.getElementById(id);
+
+    let cats = {}, vids = {}, manage = false, openCat = null;
+
+    const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    function toast(m){ const t = $('toast'); t.textContent = m; t.style.display = 'block';
+        clearTimeout(t._h); t._h = setTimeout(() => t.style.display = 'none', 2200); }
+
+    /* ── VIDEO SOURCES ────────────────────────────────────────────
+       No file uploads: Firebase Storage isn't enabled on this project
+       (the bucket 404s) and enabling it needs a paid Blaze plan. Even
+       with it, phone video runs 50–100MB a clip — the Realtime DB
+       tops out around 10MB per write and base64 inflates it another
+       third, so the gym-photo trick can't stretch to video.
+       So videos are LINKED, not hosted. Upload the clip anywhere you
+       already have (YouTube unlisted is free and unlimited, plays on
+       every phone, costs no bandwidth) and paste the link. YouTube
+       thumbnails come across automatically. */
+    function parseVideo(url){
+        url = (url || '').trim();
+        if (!url) return null;
+        let m;
+        if ((m = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{6,})/i)))
+            return { kind:'youtube', id:m[1], embed:'https://www.youtube.com/embed/' + m[1] + '?rel=0',
+                     thumb:'https://img.youtube.com/vi/' + m[1] + '/hqdefault.jpg' };
+        if ((m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/i)))
+            return { kind:'vimeo', id:m[1], embed:'https://player.vimeo.com/video/' + m[1], thumb:'' };
+        if ((m = url.match(/drive\.google\.com\/file\/d\/([\w-]+)/i)))
+            return { kind:'drive', id:m[1], embed:'https://drive.google.com/file/d/' + m[1] + '/preview', thumb:'' };
+        if ((m = url.match(/loom\.com\/share\/([\w-]+)/i)))
+            return { kind:'loom', id:m[1], embed:'https://www.loom.com/embed/' + m[1], thumb:'' };
+        if (/\.(mp4|webm|ogg|mov|m4v)(\?|$)/i.test(url))
+            return { kind:'file', id:'', embed:url, thumb:'' };
+        return { kind:'link', id:'', embed:url, thumb:'' };   // last resort: try to iframe it
+    }
+    const KIND_LABEL = { youtube:'YouTube', vimeo:'Vimeo', drive:'Google Drive', loom:'Loom', file:'Video file', link:'Link' };
+
+    /* ── image compression — same approach gym.html uses for photos ── */
+    function pickImage(cb){
+        const inp = document.createElement('input');
+        inp.type = 'file'; inp.accept = 'image/*';
+        inp.onchange = e => {
+            const f = e.target.files[0]; if (!f) return;
+            const r = new FileReader();
+            r.onload = ev => {
+                const img = new Image();
+                img.onload = () => {
+                    const max = 900; let w = img.width, h = img.height;
+                    if (w > h && w > max){ h = h * max / w; w = max; }
+                    else if (h > max){ w = w * max / h; h = max; }
+                    const cv = document.createElement('canvas');
+                    cv.width = w; cv.height = h;
+                    cv.getContext('2d').drawImage(img, 0, 0, w, h);
+                    cb(cv.toDataURL('image/jpeg', 0.62));
+                };
+                img.src = ev.target.result;
+            };
+            r.readAsDataURL(f);
+        };
+        inp.click();
+    }
+
+    /* ── data ── */
+    db.ref('academy/categories').on('value', s => { cats = s.val() || {}; render(); });
+    db.ref('academy/videos').on('value', s => { vids = s.val() || {}; render(); });
+
+    const catVids = id => Object.entries(vids).filter(([, v]) => v.catId === id)
+        .sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
+
+    /* ── views ── */
+    function render(){
+        if (openCat && !cats[openCat]) openCat = null;
+        $('crumb').style.display = openCat ? 'flex' : 'none';
+        $('addVidBtn').style.display = (manage && openCat) ? 'inline-flex' : 'none';
+        openCat ? renderVideos() : renderCats();
+    }
+
+    function renderCats(){
+        const list = Object.entries(cats).sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
+        if (!list.length){
+            $('view').innerHTML = '<div class="empty"><div class="big">NO CATEGORIES YET</div>' +
+                '<p>' + (manage ? 'Hit “Add Category” above to build the first one.'
+                                : 'Training categories will show up here once a manager adds them.') + '</p></div>';
+            return;
+        }
+        $('view').innerHTML = '<div class="grid">' + list.map(([id, c]) => {
+            const n = catVids(id).length;
+            return '<div class="cat-wrap"><button class="cat" data-cat="' + id + '">' +
+                '<div class="cat-img">' + (c.thumb ? '<img src="' + c.thumb + '" alt="">' : '<span class="ph">🎓</span>') + '</div>' +
+                '<div class="cat-body">' +
+                    '<div class="cat-name">' + esc(c.name) + '</div>' +
+                    (c.desc ? '<div class="cat-desc">' + esc(c.desc) + '</div>' : '') +
+                    '<div class="cat-meta"><span>' + n + ' video' + (n === 1 ? '' : 's') + '</span><span>Open →</span></div>' +
+                '</div></button>' +
+                (manage ? '<div class="cat-admin" style="background:var(--s1);border:1px solid var(--wire);border-top:none">' +
+                    '<button class="btn ghost sm" data-edit-cat="' + id + '">Edit</button>' +
+                    '<button class="btn danger sm" data-del-cat="' + id + '">Delete</button></div>' : '') +
+            '</div>';
+        }).join('') + '</div>';
+    }
+
+    function renderVideos(){
+        const c = cats[openCat];
+        $('crumbCat').textContent = c.name;
+        const list = catVids(openCat);
+        if (!list.length){
+            $('view').innerHTML = '<div class="empty"><div class="big">NO VIDEOS YET</div><p>' +
+                (manage ? 'Use “Add Video” above. Paste a YouTube, Vimeo, Loom or Google Drive link.'
+                        : 'Videos for ' + esc(c.name) + ' will appear here.') + '</p></div>';
+            return;
+        }
+        $('view').innerHTML = '<div class="grid">' + list.map(([id, v]) => {
+            const p = parseVideo(v.url) || {};
+            const th = v.thumb || p.thumb || '';
+            return '<div><button class="vid" data-vid="' + id + '">' +
+                '<div class="vid-thumb">' + (th ? '<img src="' + th + '" alt="">' : '') +
+                    '<span class="play">▶</span></div>' +
+                '<div class="vid-body">' +
+                    '<div class="vid-title">' + esc(v.title) + '</div>' +
+                    (v.desc ? '<div class="vid-desc">' + esc(v.desc) + '</div>' : '') +
+                    '<div class="vid-kind">' + (KIND_LABEL[p.kind] || 'Link') + '</div>' +
+                '</div></button>' +
+                (manage ? '<div class="cat-admin" style="background:var(--s1);border:1px solid var(--wire);border-top:none">' +
+                    '<button class="btn ghost sm" data-edit-vid="' + id + '">Edit</button>' +
+                    '<button class="btn danger sm" data-del-vid="' + id + '">Delete</button></div>' : '') +
+            '</div>';
+        }).join('') + '</div>';
+    }
+
+    /* ── clicks ── */
+    document.addEventListener('click', e => {
+        const t = e.target.closest('[data-cat],[data-vid],[data-edit-cat],[data-del-cat],[data-edit-vid],[data-del-vid],[data-close]');
+        if (!t) return;
+        if (t.dataset.close !== undefined){ closeModals(); return; }
+        if (t.dataset.cat){ openCat = t.dataset.cat; window.scrollTo(0,0); render(); return; }
+        if (t.dataset.vid){ play(t.dataset.vid); return; }
+        if (t.dataset.editCat){ catForm(t.dataset.editCat); return; }
+        if (t.dataset.delCat){
+            const id = t.dataset.delCat, n = catVids(id).length;
+            if (!confirm('Delete “' + cats[id].name + '”' + (n ? ' and its ' + n + ' video' + (n===1?'':'s') : '') + '?')) return;
+            const up = { ['academy/categories/' + id]: null };
+            catVids(id).forEach(([vid]) => up['academy/videos/' + vid] = null);
+            db.ref().update(up); toast('Deleted'); return;
+        }
+        if (t.dataset.editVid){ vidForm(t.dataset.editVid); return; }
+        if (t.dataset.delVid){
+            if (!confirm('Delete “' + vids[t.dataset.delVid].title + '”?')) return;
+            db.ref('academy/videos/' + t.dataset.delVid).remove(); toast('Deleted'); return;
+        }
+    });
+    $('crumbHome').onclick = e => { e.preventDefault(); openCat = null; render(); };
+    document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m) closeModals(); }));
+    function closeModals(){ document.querySelectorAll('.modal').forEach(m => m.classList.remove('on')); $('plBody').innerHTML = ''; }
+
+    function play(id){
+        const v = vids[id]; if (!v) return;
+        const p = parseVideo(v.url);
+        $('plTitle').textContent = v.title;
+        $('plDesc').textContent = v.desc || '';
+        $('plDesc').style.display = v.desc ? 'block' : 'none';
+        $('plBody').innerHTML = !p ? ''
+            : p.kind === 'file'
+                ? '<video src="' + p.embed + '" controls playsinline autoplay></video>'
+                : '<iframe src="' + p.embed + '" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture;fullscreen" allowfullscreen></iframe>';
+        $('player').classList.add('on');
+    }
+
+    /* ── manage gate ── */
+    $('manageBtn').onclick = async () => {
+        if (manage) return;
+        let pin = null;
+        try {
+            const snap = await db.ref('academy/pin').once('value');
+            pin = snap.val();
+            if (pin == null) pin = (await db.ref('managerPin').once('value')).val();
+        } catch(e){}
+        if (pin != null && String(pin) !== ''){
+            const entered = prompt('Manager login — enter PIN to manage the Academy:');
+            if (entered === null) return;
+            if (String(entered) !== String(pin)){ toast('Wrong PIN'); return; }
+        } else if (!confirm('No manager PIN is set on this database yet, so the Academy can\'t be locked. Continue?')) return;
+        manage = true;
+        sessionStorage.setItem('acManage', '1');
+        $('mgBar').style.display = 'flex';
+        $('manageBtn').style.display = 'none';
+        render();
+    };
+    $('exitMgBtn').onclick = () => {
+        manage = false; sessionStorage.removeItem('acManage');
+        $('mgBar').style.display = 'none'; $('manageBtn').style.display = 'inline-flex';
+        render();
+    };
+    if (sessionStorage.getItem('acManage') === '1'){   // survives drilling into a category
+        manage = true; $('mgBar').style.display = 'flex'; $('manageBtn').style.display = 'none';
+    }
+
+    /* ── forms ── */
+    $('addCatBtn').onclick = () => catForm(null);
+    $('addVidBtn').onclick = () => vidForm(null);
+
+    function catForm(id){
+        const c = id ? cats[id] : { name:'', desc:'', thumb:'' };
+        let thumb = c.thumb || '';
+        $('edTitle').textContent = id ? 'Edit Category' : 'Add Category';
+        $('edBody').innerHTML =
+            '<label class="f">Category name</label><input type="text" id="fName" value="' + esc(c.name) + '" placeholder="e.g. Objection Handling">' +
+            '<label class="f">Description</label><textarea id="fDesc" placeholder="What this category covers">' + esc(c.desc) + '</textarea>' +
+            '<label class="f">Tile picture</label>' +
+            '<div class="drop" id="fDrop">Tap to choose an image — this is what the tile looks like</div>' +
+            '<div class="thumb-prev" id="fPrev"><img id="fImg" src=""><button class="btn ghost sm" id="fClear" style="margin-top:8px">Remove picture</button></div>' +
+            '<div class="hint">Resized to 900px and compressed in the browser before saving, same as gym photos — no storage bill.</div>' +
+            '<div class="row"><button class="btn" id="fSave">Save</button><button class="btn ghost" data-close>Cancel</button></div>';
+        const prev = v => { thumb = v;
+            $('fPrev').style.display = v ? 'block' : 'none';
+            $('fDrop').style.display = v ? 'none' : 'block';
+            if (v) $('fImg').src = v; };
+        prev(thumb);
+        $('fDrop').onclick = () => pickImage(prev);
+        $('fClear').onclick = () => prev('');
+        $('fSave').onclick = () => {
+            const name = $('fName').value.trim();
+            if (!name){ toast('Name required'); return; }
+            const payload = { name, desc: $('fDesc').value.trim(), thumb: thumb || '' };
+            if (id) db.ref('academy/categories/' + id).update(payload);
+            else db.ref('academy/categories').push(Object.assign(payload, { order: Object.keys(cats).length, createdAt: Date.now() }));
+            closeModals(); toast(id ? 'Category saved' : 'Category added');
+        };
+        $('editor').classList.add('on');
+    }
+
+    function vidForm(id){
+        const v = id ? vids[id] : { title:'', desc:'', url:'', thumb:'' };
+        let thumb = v.thumb || '';
+        $('edTitle').textContent = id ? 'Edit Video' : 'Add Video';
+        $('edBody').innerHTML =
+            '<label class="f">Video link</label><input type="text" id="vUrl" value="' + esc(v.url) + '" placeholder="Paste a YouTube, Vimeo, Loom or Drive link">' +
+            '<div class="hint" id="vKind">YouTube (unlisted works), Vimeo, Loom, Google Drive, or a direct .mp4 link. ' +
+            'Videos are linked, not uploaded — Firebase Storage isn\'t enabled on this project and a phone clip is far too big for the database.</div>' +
+            '<label class="f">Title</label><input type="text" id="vTitle" value="' + esc(v.title) + '" placeholder="e.g. Handling “I need to think about it”">' +
+            '<label class="f">Description</label><textarea id="vDesc" placeholder="What this video teaches">' + esc(v.desc) + '</textarea>' +
+            '<label class="f">Thumbnail <span style="color:var(--faint)">(optional)</span></label>' +
+            '<div class="drop" id="vDrop">Tap to choose an image</div>' +
+            '<div class="thumb-prev" id="vPrev"><img id="vImg" src=""><button class="btn ghost sm" id="vClear" style="margin-top:8px">Remove</button></div>' +
+            '<div class="hint" id="vAuto"></div>' +
+            '<div class="row"><button class="btn" id="vSave">Save</button><button class="btn ghost" data-close>Cancel</button></div>';
+        const prev = val => { thumb = val;
+            $('vPrev').style.display = val ? 'block' : 'none';
+            $('vDrop').style.display = val ? 'none' : 'block';
+            if (val) $('vImg').src = val; };
+        prev(thumb);
+        $('vDrop').onclick = () => pickImage(prev);
+        $('vClear').onclick = () => prev('');
+        const sniff = () => {
+            const p = parseVideo($('vUrl').value);
+            $('vAuto').textContent = p && p.thumb
+                ? 'YouTube thumbnail will be pulled in automatically — only add one here to override it.'
+                : (p && p.kind === 'link' ? 'Unrecognised link — it will be embedded as-is and may not play.' : '');
+        };
+        $('vUrl').oninput = sniff; sniff();
+        $('vSave').onclick = () => {
+            const url = $('vUrl').value.trim(), title = $('vTitle').value.trim();
+            if (!url){ toast('Link required'); return; }
+            if (!title){ toast('Title required'); return; }
+            const payload = { title, desc: $('vDesc').value.trim(), url, thumb: thumb || '' };
+            if (id) db.ref('academy/videos/' + id).update(payload);
+            else db.ref('academy/videos').push(Object.assign(payload, { catId: openCat, order: catVids(openCat).length, createdAt: Date.now() }));
+            closeModals(); toast(id ? 'Video saved' : 'Video added');
+        };
+        $('editor').classList.add('on');
+    }
+</script>
+</body>
+</html>

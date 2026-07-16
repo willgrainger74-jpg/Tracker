@@ -5,8 +5,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
 
     <meta name="theme-color" content="#080808">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Action Group">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="icon-192x192.png">
@@ -223,6 +223,8 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                         <label class="check-row"><input type="checkbox" ${c.turnoverAttempted?'checked':''} onchange="updateCall('${c.id}','turnoverAttempted',this.checked)"><span>🔄 TO Attempt</span></label>
                         <label class="check-row"><input type="checkbox" ${c.turnoverAccepted?'checked':''} onchange="updateCall('${c.id}','turnoverAccepted',this.checked)" ${!c.turnoverAttempted?'disabled':''}><span>✔️ TO Accepted</span></label>
                         <label class="check-row"><input type="checkbox" ${c.threeDoorKnocks?'checked':''} onchange="updateCall('${c.id}','threeDoorKnocks',this.checked)"><span>🚪 Door Knocks</span></label>
+                <label class="check-row"><input type="checkbox" ${c.stNotes?'checked':''} onchange="updateCall('${c.id}','stNotes',this.checked)"><span>📝 ST Notes</span></label>
+                <label class="check-row"><input type="checkbox" ${c.stickers?'checked':''} onchange="updateCall('${c.id}','stickers',this.checked)"><span>🏷️ Stickers</span></label>
                         <label class="check-row"><input type="checkbox" ${c.membershipPlanSold?'checked':''} onchange="updateCall('${c.id}','membershipPlanSold',this.checked)"><span>🛡️ Membership</span></label>
                         <label class="check-row"><input type="checkbox" ${c.upsellCompleted?'checked':''} onchange="updateCall('${c.id}','upsellCompleted',this.checked)"><span>⬆️ Upsell</span></label>
                         <label class="check-row"><input type="checkbox" ${c.jobComplete?'checked':''} onchange="updateCall('${c.id}','jobComplete',this.checked)"><span>✔️ Complete</span></label>
@@ -243,7 +245,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                     </select></div>
                 </div>`).join('');
         });
-        const newCallPayload={customerName:'',jobNumber:'',customerPhone:'',reviewCompleted:false,reviewWithPic:false,restorationLead:false,turnoverAttempted:false,turnoverAccepted:false,threeDoorKnocks:false,membershipPlanSold:false,upsellCompleted:false,upsellAmount:0,jobComplete:false,jobSold:false,amountSold:0,amountCollected:0,moneyOwed:0,paymentMethod:'',hasParts:false,hasLabor:false,isNewCustomer:false,leftEstimate:false,estimateAmount:0,jobCancelled:false,cancelReason:'',tradePlumbing:false,tradeHVAC:false,tradeElectrical:false,tradeCameras:false,actionThermostat:false,objection:'',soldFromTurnover:false,turnoverFrom:'',timestamp:Date.now(),timeOfDay:new Date().getHours()};
+        const newCallPayload={customerName:'',jobNumber:'',customerPhone:'',reviewCompleted:false,reviewWithPic:false,restorationLead:false,turnoverAttempted:false,turnoverAccepted:false,threeDoorKnocks:false,stNotes:false,stickers:false,membershipPlanSold:false,upsellCompleted:false,upsellAmount:0,jobComplete:false,jobSold:false,amountSold:0,amountCollected:0,moneyOwed:0,paymentMethod:'',hasParts:false,hasLabor:false,isNewCustomer:false,leftEstimate:false,estimateAmount:0,jobCancelled:false,cancelReason:'',tradePlumbing:false,tradeHVAC:false,tradeElectrical:false,tradeCameras:false,actionThermostat:false,objection:'',soldFromTurnover:false,turnoverFrom:'',timestamp:Date.now(),timeOfDay:new Date().getHours()};
         const doAddCall=()=>{ db.ref(`callLogs/${key}`).push().set({...newCallPayload,timestamp:Date.now(),timeOfDay:new Date().getHours()}).then(ref=>{ setTimeout(()=>{ const cards=document.querySelectorAll('.call-card'); if(cards.length) cards[cards.length-1].scrollIntoView({behavior:'smooth',block:'start'}); },200); }); };
         document.getElementById('addCallBtn').onclick=doAddCall;
         document.getElementById('addCallBottom').onclick=doAddCall;

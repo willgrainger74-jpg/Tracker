@@ -108,6 +108,27 @@
         .tile.american:hover .t-enter { color:var(--ar-red); }
         .tile.american .t-logo { max-width:230px; max-height:60px; object-fit:contain; margin-bottom:10px; display:block; }
 
+        /* Action Group Training Academy — not a branch, so it spans the full
+           width under the four and stays monochrome: the parent brand, not
+           one of the children. */
+        .tile.academy { grid-column:1 / -1; background:#0d0d0d; border-color:rgba(255,255,255,.13); color:#f0f0f0; }
+        .tile.academy .t-bar { background:linear-gradient(90deg,#fff 0 33%,#2b2b2b 33% 66%,#fff 66% 100%); }
+        .tile.academy .t-mark { color:#fff; opacity:.05; }
+        .tile.academy .t-body { flex-direction:row; align-items:center; gap:26px; min-height:0; padding:26px 28px; }
+        .tile.academy .ac-logo { width:76px; height:76px; flex:none; opacity:.95; }
+        .tile.academy .ac-text { flex:1; min-width:0; }
+        .tile.academy .t-name { font-size:clamp(24px,3.4vw,32px); }
+        .tile.academy .ac-em { color:var(--muted); }
+        .tile.academy .t-region { color:#fff; opacity:.55; }
+        .tile.academy .t-meta { padding-top:12px; color:var(--muted); }
+        .tile.academy .t-enter { color:var(--faint); }
+        .tile.academy:hover { border-color:rgba(255,255,255,.28); }
+        .tile.academy:hover .t-enter { color:#fff; }
+        @media(max-width:640px){
+            .tile.academy .t-body { flex-direction:column; align-items:flex-start; gap:14px; }
+            .tile.academy .ac-logo { width:58px; height:58px; }
+        }
+
         /* extra neutral tiles from DB */
         .tile.neutral { background:var(--s1); color:var(--text); }
         .tile.neutral .t-bar { background:var(--wire2); }
@@ -248,6 +269,19 @@
             </div>
         </button>
     </div>
+
+    <a class="tile academy" href="academy.html">
+        <div class="t-bar"></div>
+        <div class="t-mark">AG</div>
+        <div class="t-body">
+            <img class="ac-logo" src="ag-logo.png" alt="">
+            <div class="ac-text">
+                <div class="t-name">ACTION GROUP <span class="ac-em">TRAINING ACADEMY</span></div>
+                <div class="t-region">Tactical Training for the Trades</div>
+                <div class="t-meta"><span>Video training by category · managed in-app</span><span class="t-enter">Enter →</span></div>
+            </div>
+        </div>
+    </a>
 
     <div class="allwide"><a href="#" id="allLink">Enter company-wide view (all Action-DB locations)</a></div>
 

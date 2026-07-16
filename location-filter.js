@@ -126,6 +126,13 @@
     if (path.indexOf('migrate.html') !== -1) return;
     if (path.indexOf('inspection.html') !== -1) return; // fleet Firebase
 
+    /* The Training Academy belongs to the Action Group, not to a branch —
+       the hub links straight to it, so it must open without picking one.
+       Safe to leave unscoped: neither page reads the roster. academy.html
+       only touches academy/*, and training.html only reads callLogs for
+       whoever is signed in. */
+    var ACADEMY = path.indexOf('academy.html') !== -1 || path.indexOf('training.html') !== -1;
+
     /* The chosen location lives in sessionStorage, not localStorage — on
        purpose. sessionStorage dies when the app or tab is closed, so every
        fresh launch starts at the hub and nobody is silently dropped into
@@ -135,15 +142,18 @@
     try { loc = JSON.parse(sessionStorage.getItem('apLocation')); } catch (e) { loc = null; }
 
     if (!loc || !loc.id) {
-        /* no location this session -> the hub, from whatever page they landed on */
-        location.replace('locations.html');
-        return;
+        if (ACADEMY) loc = { id:'academy', name:'Training Academy', brand:'action' };
+        else {
+            /* no location this session -> the hub, from whatever page they landed on */
+            location.replace('locations.html');
+            return;
+        }
     }
 
     var LOC_ID     = loc.id;
     var BRAND_KEY  = loc.brand || LOCATION_BRAND[LOC_ID] || 'action';
     var B          = BRANDS[BRAND_KEY] || BRANDS.action;
-    var FILTER_ON  = LOC_ID !== 'all';
+    var FILTER_ON  = LOC_ID !== 'all' && LOC_ID !== 'academy';
 
     /* ─────────────────────────────────────────────────────────────────
        2. PAINT THE BRAND

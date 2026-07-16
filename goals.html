@@ -5,8 +5,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
 
     <meta name="theme-color" content="#080808">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Action Group">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="icon-192x192.png">
@@ -16,6 +16,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="location-filter.js"></script>
+    <script src="gamify.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -868,5 +869,523 @@ if ('serviceWorker' in navigator) {
   setTimeout(function(){done=true;mo.disconnect();},6000);});
 })();
 </script>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   KPI COMPLIANCE LAYER — My Report
+   Same pattern as the Sales Coach layer above: reads the globals the
+   page already maintains (logs, selected, getCalls, getWeek) and
+   re-renders whenever the page's renderAll runs. No page edits.
+
+   The monthly Scorecard above answers "how am I doing?".
+   This answers "am I getting my bonus this week?" — a hard pass/fail
+   on every KPI for one week, plus a notification telling you exactly
+   what's short and by how much.
+
+   ── EDIT THE STANDARD HERE ──
+   Add, remove or re-target a KPI in the KPIS array and the card, the
+   verdict and the notification all follow. Nothing else to touch.
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    /* The official standard, matched to the Action Hub (Manus) KPI engine —
+       same six targets and the same numerator/denominator on each. On Time
+       In Full is deliberately left out (no check-in system here).
+
+       Turnover counts against CALLS, not attempts — and specifically against
+       the calls you did NOT sell but DID resolve (left an estimate or it
+       cancelled). That's the pool you could actually have handed off, and
+       it's exactly how the Hub's server computes it — verified call-for-call
+       against their live Arizona data.
+         · against attempts was gameable: attempt two, land two, 100%.
+         · against ALL calls would punish closers: at an 82% close rate only
+           18% of calls are even eligible, so 50% could never be reached.
+         · still-open calls are excluded — nothing to judge yet.
+       Want it over every call instead? Change den to s=>s.calls, one line.
+
+       One honest difference from the Hub: their reviewCount / turnoverCount
+       are numbers, so one call can log several and a rate can pass 100%.
+       This tracker stores booleans (reviewCompleted / turnoverAccepted), so
+       one call counts once and rates cap at 100%. Every other numerator and
+       denominator was verified call-for-call against their live server. */
+    const KPIS = [
+        { key:'close',    label:'Close Rate',      target:40,  num:s=>s.sold,    den:s=>s.calls,  unit:'calls closed'  },
+        { key:'turnover', label:'Turnover Rate',   target:50,  num:s=>s.toAcc,   den:s=>s.toPool, unit:'turned over',
+          denNote:'unsold calls' },
+        { key:'review',   label:'Review Rate',     target:70,  num:s=>s.reviews, den:s=>s.calls,  unit:'reviews'       },
+        { key:'plans',    label:'Membership Rate', target:20,  num:s=>s.plans,   den:s=>s.sold,   unit:'plans sold'    },
+        { key:'doors',    label:'Door Knocks',     target:100, num:s=>s.doors,   den:s=>s.calls,  unit:'calls knocked' },
+        { key:'st',       label:'ST Notes/Pics',   target:100, num:s=>s.st,      den:s=>s.calls,  unit:'calls documented' }
+    ];
+
+    let weekOffset = 0;   // 0 = this week, -1 = last week …
+
+    /* ── stats for a set of dates ── */
+    function scanKpi(pid, dates){
+        const s = { calls:0, sold:0, toPool:0, reviews:0, toAcc:0, plans:0, doors:0, st:0 };
+        dates.forEach(d => getCalls(pid, d).forEach(c => {
+            s.calls++;
+            if (c.jobSold) s.sold++;
+            // turnover pool = resolved but not sold. An open call isn't judged.
+            else if (c.jobCancelled || c.leftEstimate) s.toPool++;
+            if (c.reviewWithPic || c.reviewCompleted) s.reviews++;
+            if (c.turnoverAccepted) s.toAcc++;          // a turnover actually handed off
+            if (c.membershipPlanSold) s.plans++;
+            if (c.threeDoorKnocks) s.doors++;
+            if (c.stNotes && c.stickers) s.st++;         // both boxes = documented
+        }));
+        return s;
+    }
+
+    // "2 more plans sold" but "1 more plan sold"
+    const qty = (n, unit) => n + ' more ' + (n === 1 ? unit.replace(/^(\w+?)s\b/, '$1') : unit);
+
+    function evaluate(s){
+        return KPIS.map(k => {
+            const num = k.num(s), den = k.den(s);
+            const val = den > 0 ? (num / den) * 100 : null;
+            const needed = den > 0 ? Math.max(0, Math.ceil(k.target * den / 100) - num) : 0;
+            return {
+                ...k, num, den, val, needed,
+                hit:  val !== null && val >= k.target,
+                idle: den === 0                    // nothing to judge yet
+            };
+        });
+    }
+
+    /* ── the card ── */
+    function mount(){
+        if (document.getElementById('kpiCard')) return true;
+        const scoreLabel = [...document.querySelectorAll('.sec-label')]
+            .find(el => /Scorecard/i.test(el.textContent));
+        if (!scoreLabel) return false;
+        const card = scoreLabel.closest('.card') || scoreLabel.parentElement;
+
+        const el = document.createElement('div');
+        el.className = 'card';
+        el.id = 'kpiCard';
+        el.innerHTML =
+            '<div class="month-nav" style="margin-bottom:14px">' +
+              '<button class="btn btn-red" id="kpiPrev">←</button>' +
+              '<h2 id="kpiRange" style="font-size:16px"></h2>' +
+              '<button class="btn btn-red" id="kpiNext">→</button>' +
+            '</div>' +
+            '<div class="sec-label">KPI Compliance <span id="kpiWhen" style="color:var(--faint);letter-spacing:.04em"></span></div>' +
+            '<div id="kpiVerdict" class="kpi-verdict"></div>' +
+            '<div id="kpiRows"></div>';
+        card.parentNode.insertBefore(el, card.nextSibling);
+
+        document.getElementById('kpiPrev').onclick = () => { weekOffset--; renderKpi(); };
+        document.getElementById('kpiNext').onclick = () => { if (weekOffset < 0){ weekOffset++; renderKpi(); } };
+        return true;
+    }
+
+    /* ── the notification ── */
+    function mountNote(){
+        if (document.getElementById('kpiNote')) return document.getElementById('kpiNote');
+        const page = document.querySelector('.page');
+        const header = document.querySelector('.pg-header');
+        if (!page) return null;
+        const n = document.createElement('div');
+        n.id = 'kpiNote';
+        n.style.display = 'none';
+        if (header && header.nextSibling) page.insertBefore(n, header.nextSibling);
+        else page.insertBefore(n, page.firstChild);
+        return n;
+    }
+
+    function renderNote(rows, live){
+        const n = mountNote();
+        if (!n) return;
+        const judged  = rows.filter(r => !r.idle);
+        const missing = judged.filter(r => !r.hit);
+
+        // dismissed for this week, this session? stay quiet.
+        const stamp = 'kpiNote_' + weekOffset + '_' + (selected || '');
+        if (sessionStorage.getItem('dismiss_' + stamp)){ n.style.display = 'none'; return; }
+
+        if (!judged.length){ n.style.display = 'none'; return; }
+
+        if (!missing.length){
+            n.className = 'kpi-note good';
+            n.innerHTML =
+                '<div class="kn-top"><span class="kn-ico">✓</span>' +
+                '<b>' + (live ? 'Bonus qualified' : 'Qualified') + ' — all ' + judged.length + ' KPIs hit' +
+                (live ? ' so far this week' : '') + '.</b>' +
+                '<button class="kn-x" aria-label="Dismiss">×</button></div>' +
+                (live ? '<div class="kn-line">Hold it through Sunday and the bonus is yours.</div>' : '');
+        } else {
+            n.className = 'kpi-note bad';
+            n.innerHTML =
+                '<div class="kn-top"><span class="kn-ico">!</span>' +
+                '<b>' + missing.length + ' KPI' + (missing.length > 1 ? 's' : '') + ' off target' +
+                (live ? ' this week' : '') + '</b>' +
+                '<button class="kn-x" aria-label="Dismiss">×</button></div>' +
+                missing.map(r =>
+                    '<div class="kn-line"><b>' + r.label + '</b> ' + r.val.toFixed(0) + '% — need ' + r.target + '%. ' +
+                    (r.needed
+                        ? '<span class="kn-fix">' + qty(r.needed, r.unit) + '</span> out of your ' + r.den + '.'
+                        : '')
+                    + '</div>').join('');
+        }
+        n.style.display = 'block';
+        const x = n.querySelector('.kn-x');
+        if (x) x.onclick = () => { sessionStorage.setItem('dismiss_' + stamp, '1'); n.style.display = 'none'; };
+    }
+
+    /* ── render ── */
+    window.renderKpi = function(){
+        try {
+            if (!mount()) return;
+            const base = new Date();
+            base.setDate(base.getDate() + weekOffset * 7);
+            const dates = getWeek(base);
+            const live  = weekOffset === 0;
+            const fmt   = d => d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+
+            document.getElementById('kpiRange').textContent = fmt(dates[0]) + ' – ' + fmt(dates[6]);
+            document.getElementById('kpiWhen').textContent  = live ? '— this week, in progress' : '— final';
+            document.getElementById('kpiNext').style.visibility = live ? 'hidden' : 'visible';
+
+            const rows = evaluate(scanKpi(selected, dates));
+            const judged = rows.filter(r => !r.idle);
+            const hits   = judged.filter(r => r.hit).length;
+
+            const v = document.getElementById('kpiVerdict');
+            if (!judged.length){
+                v.className = 'kpi-verdict idle';
+                v.innerHTML = '<span class="kv-big">NO CALLS YET</span><span class="kv-sub">this week</span>';
+            } else if (hits === judged.length){
+                v.className = 'kpi-verdict good';
+                v.innerHTML = '<span class="kv-big">' + (live ? 'ON TRACK' : 'QUALIFIED') + '</span>' +
+                              '<span class="kv-sub">all ' + judged.length + ' KPIs hit</span>';
+            } else {
+                v.className = 'kpi-verdict bad';
+                v.innerHTML = '<span class="kv-big">' + hits + ' OF ' + judged.length + '</span>' +
+                              '<span class="kv-sub">' + (judged.length - hits) + ' to go' +
+                              (live ? '' : ' — missed') + '</span>';
+            }
+
+            document.getElementById('kpiRows').innerHTML = rows.map(r => {
+                const state = r.idle ? 'idle' : (r.hit ? 'good' : (r.val >= r.target * 0.8 ? 'warn' : 'bad'));
+                const w = r.idle ? 0 : Math.min(100, (r.val / r.target) * 100);
+                return '<div class="kpi-row ' + state + '">' +
+                    '<div class="kr-head">' +
+                        '<span class="kr-name"><span class="kr-tick">' + (r.idle ? '·' : (r.hit ? '✓' : '✕')) + '</span>' + r.label + '</span>' +
+                        '<span class="kr-val">' + (r.idle ? '—' : r.val.toFixed(0) + '%') +
+                            '<span class="kr-tgt">/ ' + r.target + '%</span></span>' +
+                    '</div>' +
+                    '<div class="kr-bar"><div class="kr-fill" style="width:' + w + '%"></div>' +
+                        '<div class="kr-mark"></div></div>' +
+                    '<div class="kr-note">' + (r.idle ? (r.denNote ? 'no ' + r.denNote + ' yet' : 'nothing to measure yet')
+                        : r.num + ' / ' + r.den + ' ' + (r.denNote || r.unit) + (r.hit ? '' : ' · ' + r.needed + ' short')) + '</div>' +
+                '</div>';
+            }).join('');
+
+            renderNote(rows, live);
+        } catch(e){ /* layer is best-effort — never break My Report */ }
+    };
+
+    const _ra = renderAll;
+    renderAll = function(){ _ra(); renderKpi(); };
+})();
+</script>
+<style>
+/* ── KPI compliance ── */
+.kpi-verdict{display:flex;align-items:baseline;gap:10px;padding:12px 14px;margin-bottom:14px;
+    border-left:3px solid var(--muted);background:var(--s2)}
+.kpi-verdict.good{border-left-color:#22c55e}
+.kpi-verdict.bad{border-left-color:var(--red)}
+.kpi-verdict.idle{border-left-color:var(--faint)}
+.kv-big{font-family:'Bebas Neue','Oswald',sans-serif;font-size:26px;letter-spacing:1.5px;line-height:1;color:var(--text)}
+.kpi-verdict.good .kv-big{color:#22c55e}
+.kpi-verdict.bad .kv-big{color:var(--red)}
+.kv-sub{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+.kpi-row{padding:11px 0;border-bottom:1px solid var(--wire)}
+.kpi-row:last-child{border-bottom:none}
+.kr-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.kr-name{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--text);display:flex;align-items:center;gap:8px}
+.kr-tick{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;
+    border-radius:50%;font-size:10px;font-weight:700;background:var(--s3);color:var(--muted)}
+.kpi-row.good .kr-tick{background:#22c55e;color:#04120a}
+.kpi-row.bad .kr-tick,.kpi-row.warn .kr-tick{background:var(--red);color:#fff}
+.kr-val{font-family:'Bebas Neue','Oswald',sans-serif;font-size:20px;letter-spacing:.5px;color:var(--text)}
+.kpi-row.good .kr-val{color:#22c55e}
+.kpi-row.bad .kr-val{color:var(--red)}
+.kr-tgt{font-family:'Inter',sans-serif;font-size:11px;font-weight:500;color:var(--faint);margin-left:5px}
+.kr-bar{position:relative;height:5px;background:var(--s3);margin:7px 0 5px;overflow:hidden}
+.kr-fill{height:100%;background:var(--muted);transition:width .5s ease}
+.kpi-row.good .kr-fill{background:#22c55e}
+.kpi-row.warn .kr-fill{background:#f59e0b}
+.kpi-row.bad .kr-fill{background:var(--red)}
+.kr-mark{position:absolute;top:0;right:0;width:2px;height:100%;background:var(--wire2)}
+.kr-note{font-size:11px;color:var(--muted)}
+
+/* ── notification ── */
+.kpi-note{padding:14px 16px;margin-bottom:18px;border-left:3px solid var(--red);background:var(--s1);
+    border:1px solid var(--wire);border-left-width:3px;animation:kn-in .3s ease}
+.kpi-note.good{border-left-color:#22c55e}
+@keyframes kn-in{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+.kn-top{display:flex;align-items:center;gap:9px;font-family:'Oswald',sans-serif;font-size:13px;
+    letter-spacing:.05em;text-transform:uppercase;color:var(--text)}
+.kn-ico{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;flex:none;
+    border-radius:50%;background:var(--red);color:#fff;font-size:12px;font-weight:700}
+.kpi-note.good .kn-ico{background:#22c55e;color:#04120a}
+.kn-x{margin-left:auto;background:none;border:none;color:var(--faint);font-size:19px;line-height:1;
+    cursor:pointer;padding:0 2px}
+.kn-x:hover{color:var(--text)}
+.kn-line{font-size:12px;color:var(--muted);margin-top:7px;padding-left:28px}
+.kn-line b{color:var(--text);font-weight:600}
+.kn-fix{color:var(--red);font-weight:600}
+.kpi-note.good .kn-line{padding-left:28px}
+@media(max-width:520px){.kn-line{padding-left:0}}
+</style>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   GAMIFICATION LAYER — My Report
+   Same pattern as the Sales Coach and KPI layers: wraps renderAll,
+   reads the globals the page already keeps. Rendering only — all the
+   rules live in gamify.js.
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    if (!window.AP_GAMIFY) return;              // gamify.js didn't load — do nothing
+    var G = window.AP_GAMIFY;
+    var knownBadges = null;                     // earn-dates from Firebase
+    var gymLogs = {}, training = {};
+    var lastPid = null;
+
+    // gym + training aren't loaded by this page — grab them once, shallow.
+    try {
+        firebase.database().ref('gymLogs').once('value').then(function(s){
+            var v = s.val() || {}; gymLogs = {};
+            Object.keys(v).forEach(function(k){ gymLogs[k] = 1; });   // keys only, skip the base64 photos
+            if (window.renderGamify) renderGamify();
+        }).catch(function(){});
+        firebase.database().ref('trainingProgress').once('value').then(function(s){
+            training = s.val() || {};
+            if (window.renderGamify) renderGamify();
+        }).catch(function(){});
+    } catch(e){}
+
+    function mount(){
+        if (document.getElementById('gamCard')) return true;
+        var anchor = document.getElementById('kpiCard');
+        if (!anchor){
+            var lbl = [...document.querySelectorAll('.sec-label')].find(function(el){ return /Scorecard/i.test(el.textContent); });
+            anchor = lbl && lbl.closest('.card');
+        }
+        if (!anchor) return false;
+        var el = document.createElement('div');
+        el.className = 'card'; el.id = 'gamCard';
+        el.innerHTML =
+            '<div class="sec-label">Rank &amp; Badges</div>' +
+            '<div id="gamLevel"></div>' +
+            '<div class="gam-split"><div id="gamRace"></div><div id="gamTally"></div></div>' +
+            '<div class="sec-label" style="margin-top:20px">Badges <span id="gamCount" style="color:var(--faint);letter-spacing:.04em"></span></div>' +
+            '<div id="gamBadges" class="gam-grid"></div>';
+        anchor.parentNode.insertBefore(el, anchor.nextSibling);
+        return true;
+    }
+
+    function toast(badges){
+        var wrap = document.getElementById('gamToast');
+        if (!wrap){
+            wrap = document.createElement('div');
+            wrap.id = 'gamToast';
+            document.body.appendChild(wrap);
+        }
+        badges.forEach(function(b, i){
+            setTimeout(function(){
+                var t = document.createElement('div');
+                t.className = 'gam-toast r-' + b.rarity;
+                t.innerHTML =
+                    '<div class="gt-ico">' + b.icon + '</div>' +
+                    '<div><div class="gt-top">Badge Unlocked · ' + b.rarity + '</div>' +
+                    '<div class="gt-name">' + b.name + '</div>' +
+                    '<div class="gt-desc">' + b.desc + ' · +' + (G.XP.badge[b.rarity]||0) + ' XP</div></div>';
+                wrap.appendChild(t);
+                setTimeout(function(){ t.classList.add('out'); setTimeout(function(){ t.remove(); }, 400); }, 5200);
+            }, i * 700);
+        });
+    }
+
+    window.renderGamify = function(){
+        try {
+            if (!selected || !mount()) return;
+
+            /* Two boards off one pass over the roster (`people` is already
+               filtered to this location by the location shim):
+                 revenue rank -> feeds the Top Tech / Podium badges
+                 XP rank      -> makes "this month" mean something. A number
+                                 with nothing to compare it to isn't a race. */
+            var mDates = getMDates(currentDate);
+            var board = (people || []).map(function(p){
+                var rev = 0, ms = { calls:0, sold:0, rev:0, reviews:0, reviewsPic:0, plans:0,
+                                    turnovers:0, toPool:0, doors:0, st:0, gym:0, modules:0 };
+                mDates.forEach(function(d){
+                    getCalls(p.id, d).forEach(function(c){
+                        ms.calls++;
+                        if (c.jobSold){ ms.sold++; var a = parseFloat(c.amountSold)||0; ms.rev += a; rev += a; }
+                        if (c.reviewWithPic){ ms.reviews++; ms.reviewsPic++; } else if (c.reviewCompleted) ms.reviews++;
+                        if (c.membershipPlanSold) ms.plans++;
+                        if (c.turnoverAccepted) ms.turnovers++;
+                        if (c.threeDoorKnocks) ms.doors++;
+                        if (c.stNotes && c.stickers) ms.st++;
+                    });
+                });
+                return { id:p.id, rev:rev, xp:G.xpOf(ms) };
+            });
+            var rank = board.slice().sort(function(a,b){ return b.rev - a.rev; })
+                            .findIndex(function(r){ return r.id === selected; }) + 1;
+            var xpBoard = board.slice().sort(function(a,b){ return b.xp - a.xp; });
+            var xpRank  = xpBoard.findIndex(function(r){ return r.id === selected; }) + 1;
+            var xpField = xpBoard.filter(function(r){ return r.xp > 0; }).length;
+
+            var res = G.buildContext({
+                pid: selected, logs: logs, gymLogs: gymLogs, training: training,
+                getCalls: getCalls, monthDates: mDates, weekDates: getWeek(new Date()),
+                rankMonth: rank,
+                kpiQualified: (function(){
+                    var v = document.getElementById('kpiVerdict');
+                    return !!v && /ON TRACK|QUALIFIED/.test(v.textContent);
+                })()
+            });
+
+            var L = res.level;
+            document.getElementById('gamLevel').innerHTML =
+                '<div class="gam-lv">' +
+                    '<div class="gl-ico" style="border-color:' + L.color + '">' + L.icon + '</div>' +
+                    '<div class="gl-body">' +
+                        '<div class="gl-top"><span class="gl-title" style="color:' + L.color + '">' + L.title + '</span>' +
+                            '<span class="gl-num">LVL ' + L.level + '</span></div>' +
+                        '<div class="gl-bar"><div class="gl-fill" style="width:' + L.pct + '%;background:' + L.color + '"></div></div>' +
+                        '<div class="gl-meta">' + L.xp.toLocaleString() + ' XP' +
+                            (L.next ? ' · ' + L.toNext.toLocaleString() + ' to ' + L.next.title : ' · maxed out') + '</div>' +
+                    '</div>' +
+                '</div>';
+
+            var lead = xpBoard.length ? xpBoard[0].xp : 0;
+            var gap  = xpRank > 1 ? lead - res.monthXp : 0;
+            document.getElementById('gamRace').innerHTML =
+                '<div class="gam-stat"><div class="gs-lbl">This Month' +
+                (xpRank ? '<span class="gs-rank' + (xpRank === 1 ? ' first' : '') + '">#' + xpRank +
+                          (xpField ? ' of ' + xpField : '') + '</span>' : '') + '</div>' +
+                '<div class="gs-num">' + res.monthXp.toLocaleString() + '<span> XP</span></div>' +
+                '<div class="gs-meta">' + (xpRank === 1 && res.monthXp > 0 ? 'leading your location'
+                    : gap > 0 ? gap.toLocaleString() + ' XP behind the lead' : 'resets monthly') + '</div></div>';
+            document.getElementById('gamTally').innerHTML =
+                '<div class="gam-stat"><div class="gs-lbl">From Badges</div>' +
+                '<div class="gs-num">' + res.badgeXp.toLocaleString() + '<span> XP</span></div>' +
+                '<div class="gs-meta">' + res.earnedIds.length + ' of ' + G.BADGES.length + ' unlocked</div></div>';
+
+            document.getElementById('gamCount').textContent = '— ' + res.earnedIds.length + ' / ' + G.BADGES.length;
+
+            var earnedSet = {};
+            res.earnedIds.forEach(function(id){ earnedSet[id] = true; });
+            var sorted = G.BADGES.slice().sort(function(a,b){
+                var ea = earnedSet[a.id] ? 0 : 1, eb = earnedSet[b.id] ? 0 : 1;
+                if (ea !== eb) return ea - eb;
+                return G.RARITY_ORDER[a.rarity] - G.RARITY_ORDER[b.rarity];
+            });
+            document.getElementById('gamBadges').innerHTML = sorted.map(function(b){
+                var got = !!earnedSet[b.id];
+                var when = knownBadges && knownBadges[b.id]
+                    ? new Date(knownBadges[b.id]).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+                return '<div class="gam-badge ' + (got ? 'got r-' + b.rarity : 'locked') + '" title="' +
+                        b.name + ' — ' + b.desc + '">' +
+                    '<div class="gb-ico">' + (got ? b.icon : '🔒') + '</div>' +
+                    '<div class="gb-name">' + b.name + '</div>' +
+                    '<div class="gb-desc">' + (got ? (when || b.rarity) : b.desc) + '</div>' +
+                '</div>';
+            }).join('');
+
+            // stamp new unlocks once we know what was already earned
+            if (knownBadges === null){
+                if (lastPid === selected) return;
+                lastPid = selected;
+                G.loadBadges(selected, function(known){
+                    var first = Object.keys(known).length === 0;
+                    var fresh = G.stampBadges(selected, res.earnedIds, known);
+                    knownBadges = known;
+                    fresh.forEach(function(id){ knownBadges[id] = Date.now(); });
+                    // don't fire 20 toasts at a rep who's had these for a year
+                    if (!first && fresh.length) toast(fresh.map(G.byId).filter(Boolean));
+                    renderGamify();
+                });
+            } else {
+                var fresh2 = G.stampBadges(selected, res.earnedIds, knownBadges);
+                if (fresh2.length){
+                    fresh2.forEach(function(id){ knownBadges[id] = Date.now(); });
+                    toast(fresh2.map(G.byId).filter(Boolean));
+                }
+            }
+        } catch(e){ /* best-effort layer */ }
+    };
+
+    var _ra = renderAll;
+    renderAll = function(){ _ra(); renderGamify(); };
+})();
+</script>
+<style>
+/* ── rank ── */
+.gam-lv{display:flex;align-items:center;gap:14px;padding:14px;background:var(--s2);margin-bottom:14px}
+.gl-ico{width:52px;height:52px;flex:none;display:flex;align-items:center;justify-content:center;
+    font-size:26px;border:2px solid var(--muted);border-radius:50%;background:var(--s1)}
+.gl-body{flex:1;min-width:0}
+.gl-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.gl-title{font-family:'Bebas Neue','Oswald',sans-serif;font-size:24px;letter-spacing:1.5px;line-height:1}
+.gl-num{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.2em;color:var(--muted)}
+.gl-bar{height:6px;background:var(--s3);margin:8px 0 6px;overflow:hidden}
+.gl-fill{height:100%;transition:width .7s ease}
+.gl-meta{font-size:11px;color:var(--muted)}
+
+.gam-split{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gam-stat{background:var(--s2);padding:12px 14px}
+.gs-lbl{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:6px}
+.gs-rank{font-family:'Bebas Neue','Oswald',sans-serif;font-size:13px;letter-spacing:.5px;color:var(--text);
+    background:var(--s3);padding:1px 6px;border-radius:2px}
+.gs-rank.first{background:#f0b849;color:#181203}
+.gs-num{font-family:'Bebas Neue','Oswald',sans-serif;font-size:26px;letter-spacing:1px;color:var(--text);line-height:1.1}
+.gs-num span{font-size:12px;color:var(--muted);letter-spacing:.1em}
+.gs-meta{font-size:10px;color:var(--faint);margin-top:2px}
+
+/* ── badges ── */
+.gam-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.gam-badge{background:var(--s2);border:1px solid var(--wire);padding:12px 8px;text-align:center;
+    transition:transform .12s,border-color .15s}
+.gam-badge:hover{transform:translateY(-2px)}
+.gb-ico{font-size:24px;line-height:1;margin-bottom:6px}
+.gb-name{font-family:'Oswald',sans-serif;font-size:10px;font-weight:600;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--text);line-height:1.2}
+.gb-desc{font-size:9px;color:var(--faint);margin-top:3px;line-height:1.3}
+.gam-badge.locked{opacity:.42}
+.gam-badge.locked .gb-name{color:var(--muted)}
+.gam-badge.got.r-common{border-color:#6b7280}
+.gam-badge.got.r-uncommon{border-color:#22c55e}
+.gam-badge.got.r-rare{border-color:#3b82f6;box-shadow:0 0 12px rgba(59,130,246,.16)}
+.gam-badge.got.r-legendary{border-color:#f0b849;box-shadow:0 0 14px rgba(240,184,73,.24)}
+.gam-badge.got.r-legendary .gb-name{color:#f0b849}
+
+/* ── unlock toast ── */
+#gamToast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));
+    z-index:99998;display:flex;flex-direction:column;gap:8px;width:min(360px,calc(100vw - 24px));pointer-events:none}
+.gam-toast{display:flex;align-items:center;gap:12px;background:var(--s2);border:1px solid var(--wire2);
+    border-left-width:3px;padding:12px 14px;animation:gt-in .35s cubic-bezier(.2,1.3,.4,1)}
+.gam-toast.out{animation:gt-out .4s ease forwards}
+@keyframes gt-in{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes gt-out{to{opacity:0;transform:translateY(-8px)}}
+.gam-toast.r-common{border-left-color:#6b7280}
+.gam-toast.r-uncommon{border-left-color:#22c55e}
+.gam-toast.r-rare{border-left-color:#3b82f6}
+.gam-toast.r-legendary{border-left-color:#f0b849;box-shadow:0 0 22px rgba(240,184,73,.22)}
+.gt-ico{font-size:26px;flex:none}
+.gt-top{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.gt-name{font-family:'Bebas Neue','Oswald',sans-serif;font-size:19px;letter-spacing:1px;color:var(--text);line-height:1.1}
+.gt-desc{font-size:10px;color:var(--muted)}
+@media(max-width:520px){.gam-split{grid-template-columns:1fr}}
+</style>
+
 </body>
 </html>
