@@ -572,7 +572,12 @@ html.light .nav-card.mgr-card .nav-card-title{color:var(--muted);}
         .nav-card:nth-child(8) { animation-delay: 0.40s; }
         .nav-card:nth-child(9) { animation-delay: 0.45s; }
         .nav-card:nth-child(10) { animation-delay: 0.50s; }
-    </style>
+    
+.rev-split{display:flex;gap:6px;margin-top:6px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.08em;text-transform:uppercase;flex-wrap:wrap}
+.rev-split span{padding:2px 7px;border:1px solid var(--wire2)}
+.rev-split .rs-a{color:#f87171;border-color:rgba(220,38,38,.4)}
+.rev-split .rs-p{color:#93b4ff;border-color:rgba(29,78,216,.5)}
+</style>
 </head>
 <body>
 <div id="themeToggleWrap" style="position:fixed;top:12px;right:16px;z-index:9999;display:flex;flex-direction:row-reverse;align-items:center;gap:10px;">
@@ -620,6 +625,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
             <div class="stat-label">Today's Revenue</div>
             <div id="todayRevenue" class="stat-num">$0</div>
             <div class="stat-meta">Team total</div>
+                    <div id="revSplit" class="rev-split" style="display:none"></div>
         </div>
         <div class="stat-block">
             <div class="stat-label">Sold Today</div>
@@ -953,13 +959,16 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
     function renderStats() {
         const today = new Date();
         const dk = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-        let calls = 0, rev = 0;
+        let calls = 0, rev = 0, revAction = 0, revAllPro = 0;
         allPeople.forEach(p => {
             const c = logs[`${p.id}_${dk}`];
-            if (c) { const arr = Object.values(c); calls += arr.length; rev += arr.reduce((s,x) => s+(parseFloat(x.amountSold)||0), 0); }
+            if (c) { Object.values(c).forEach(x => { calls++; const amt = parseFloat(x.amountSold)||0; rev += amt; if (x.company==='allpro') revAllPro += amt; else revAction += amt; }); }
         });
         document.getElementById('todayCalls').textContent = calls;
         document.getElementById('todayRevenue').textContent = '$' + Math.round(rev).toLocaleString();
+        const _sp = document.getElementById('revSplit');
+        const _splitOn = (function(){ try { var l = window.AP_LOCATION; return !!l && (l.id==='utah' || l.id==='all'); } catch(e){ return false; } })();
+        if (_sp && _splitOn) { _sp.style.display = 'flex'; _sp.innerHTML = '<span class="rs-a">Action $' + Math.round(revAction).toLocaleString() + '</span><span class="rs-p">All Pro $' + Math.round(revAllPro).toLocaleString() + '</span>'; }
     }
 
     function renderPeople() {

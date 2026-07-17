@@ -340,5 +340,117 @@ if ('serviceWorker' in navigator) {
   setTimeout(function(){done=true;mo.disconnect();},6000);});
 })();
 </script>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   ACTION / ALL PRO SPLIT — Team Report
+   Company-by-company breakdown of the whole team's numbers for the
+   period the report is showing. Only at Utah / all-locations.
+   Layer pattern: wraps renderAll, reuses the page's own getCalls,
+   allPeople, currentDate and getMDates. Zero page edits.
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    function splitOn(){
+        try { var l = window.AP_LOCATION; return !!l && (l.id === 'utah' || l.id === 'all'); }
+        catch(e){ return false; }
+    }
+    if (!splitOn()) return;
+
+    function co(c){ return c && c.company === 'allpro' ? 'allpro' : 'action'; }
+
+    function mount(){
+        if (document.getElementById('teamSplit')) return true;
+        var page = document.querySelector('.page');
+        if (!page) return false;
+        // drop it right under the page header so it's the first thing after the title
+        var header = document.querySelector('.pg-header');
+        var el = document.createElement('div');
+        el.className = 'card'; el.id = 'teamSplit';
+        el.innerHTML = '<div class="sec-label">Action vs All Pro <span id="tsWhen" style="color:var(--faint);letter-spacing:.04em"></span></div><div id="tsBody"></div>';
+        if (header && header.parentNode === page) page.insertBefore(el, header.nextSibling);
+        else page.insertBefore(el, page.firstChild);
+        return true;
+    }
+
+    function tally(dates){
+        var t = { action:blank(), allpro:blank() };
+        allPeople.forEach(function(p){
+            dates.forEach(function(d){
+                getCalls(p.id, d).forEach(function(c){
+                    var b = t[co(c)];
+                    b.calls++;
+                    if (c.jobSold){ b.sold++; b.rev += parseFloat(c.amountSold) || 0; }
+                    if (c.reviewWithPic || c.reviewCompleted) b.reviews++;
+                    if (c.membershipPlanSold) b.plans++;
+                    if (c.turnoverAccepted) b.turnovers++;
+                });
+            });
+        });
+        return t;
+    }
+    function blank(){ return { calls:0, sold:0, rev:0, reviews:0, plans:0, turnovers:0 }; }
+
+    function metric(label, av, pv, fmt){
+        fmt = fmt || (x => x);
+        var max = Math.max(1, av, pv);
+        return '<div class="tsm">' +
+            '<div class="tsm-lbl">' + label + '</div>' +
+            '<div class="tsm-pair">' +
+                '<div class="tsm-side a"><span class="tsm-v">' + fmt(av) + '</span>' +
+                    '<div class="tsm-bar"><div class="tsm-fill" style="width:' + (av/max*100) + '%"></div></div></div>' +
+                '<div class="tsm-side p"><div class="tsm-bar r"><div class="tsm-fill" style="width:' + (pv/max*100) + '%"></div></div>' +
+                    '<span class="tsm-v">' + fmt(pv) + '</span></div>' +
+            '</div></div>';
+    }
+
+    window.renderTeamSplit = function(){
+        try {
+            if (!mount()) return;
+            var dates = (typeof getDates === 'function') ? getDates() : getMDates(currentDate);
+            var t = tally(dates);
+            var a = t.action, p = t.allpro;
+            var pct = (n,d) => d ? Math.round(n/d*100) : 0;
+            var money = x => '$' + Math.round(x).toLocaleString();
+
+            document.getElementById('tsWhen').textContent = '— ' +
+                currentDate.toLocaleString('en-US',{month:'long', year:'numeric'});
+
+            document.getElementById('tsBody').innerHTML =
+                '<div class="ts-head"><span class="ts-a">ACTION</span><span class="ts-p">ALL PRO</span></div>' +
+                metric('Revenue',    a.rev, p.rev, money) +
+                metric('Close Rate', pct(a.sold,a.calls), pct(p.sold,p.calls), x=>x+'%') +
+                metric('Calls',      a.calls, p.calls) +
+                metric('Sold',       a.sold, p.sold) +
+                metric('Review Rate',pct(a.reviews,a.calls), pct(p.reviews,p.calls), x=>x+'%') +
+                metric('Memberships',a.plans, p.plans) +
+                '<div class="ts-total"><span>Combined Revenue</span><span>' + money(a.rev + p.rev) + '</span></div>';
+        } catch(e){}
+    };
+    var _ra = renderAll;
+    renderAll = function(){ _ra(); renderTeamSplit(); };
+})();
+</script>
+<style>
+#teamSplit .ts-head{display:flex;justify-content:space-between;margin-bottom:10px;
+    font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
+#teamSplit .ts-a{color:#f87171}
+#teamSplit .ts-p{color:#93b4ff}
+.tsm{padding:9px 0;border-bottom:1px solid var(--wire)}
+.tsm-lbl{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:5px}
+.tsm-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:center}
+.tsm-side{display:flex;align-items:center;gap:8px}
+.tsm-side.a{flex-direction:row-reverse;text-align:right}
+.tsm-v{font-family:'Bebas Neue','Oswald',sans-serif;font-size:19px;letter-spacing:.5px;min-width:74px}
+.tsm-side.a .tsm-v{color:#f87171}
+.tsm-side.p .tsm-v{color:#93b4ff}
+.tsm-bar{flex:1;height:6px;background:var(--s3);overflow:hidden}
+.tsm-fill{height:100%;float:right;background:#dc2626}
+.tsm-bar.r .tsm-fill{float:left;background:#1d4ed8}
+.ts-total{display:flex;justify-content:space-between;align-items:baseline;padding:14px 0 2px;
+    font-family:'Bebas Neue','Oswald',sans-serif;letter-spacing:1px}
+.ts-total span:first-child{font-size:14px;color:var(--muted);letter-spacing:.18em;text-transform:uppercase}
+.ts-total span:last-child{font-size:28px;color:var(--text)}
+</style>
+
 </body>
 </html>

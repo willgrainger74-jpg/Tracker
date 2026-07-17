@@ -108,6 +108,41 @@
         .tile.american:hover .t-enter { color:var(--ar-red); }
         .tile.american .t-logo { max-width:230px; max-height:60px; object-fit:contain; margin-bottom:10px; display:block; }
 
+        /* ── the Action/All Pro dual tile (Utah) ──
+           Sliced corner to corner: top-right of the diagonal stays Action
+           black; the bottom-left→top-right triangle underneath is All Pro.
+           Their logo is 73% dark navy and vanishes on black, so the All Pro
+           half is WHITE — true to their site (navy-on-white) and it makes
+           the two-company split read instantly. A navy stripe (#1e3078,
+           their logo's dominant color) marks the diagonal itself. */
+        .tile.dual .ap-slice {
+            position:absolute; inset:0; z-index:1; pointer-events:none;
+            /* true corner to corner: top-right corner down to bottom-left corner */
+            clip-path:polygon(100% 4.5%, 100% 100%, 0 100%);
+            background:linear-gradient(135deg,#eef2fa 0%,#ffffff 55%);
+        }
+        .tile.dual .ap-slice-line {
+            /* the diagonal itself, in All Pro's navy (#1e3078 — their logo's
+               dominant color), running the full corner-to-corner line */
+            position:absolute; inset:0; z-index:1; pointer-events:none;
+            clip-path:polygon(100% 0, 100% 4.5%, 0 100%, 0 95.5%);
+            background:#1e3078;
+        }
+        .tile.dual .ap-slice img {
+            position:absolute; right:22px; bottom:36px; width:min(48%,204px); height:auto;
+        }
+        .tile.dual .ap-slice-tag {
+            position:absolute; right:23px; bottom:13px;
+            font-family:'Oswald',sans-serif; font-size:11px; font-weight:600;
+            letter-spacing:.3em; text-transform:uppercase; color:#1e3078;
+        }
+        .tile.dual .t-body { position:relative; z-index:2; }
+        /* the black triangle narrows toward the bottom — keep every word of
+           the Action side inside it */
+        .tile.dual .t-region { max-width:55%; }
+        .tile.dual .t-meta { margin-top:12px; max-width:36%; flex-direction:column; align-items:flex-start; gap:3px; }
+        .tile.dual .t-mark { z-index:0; }
+
         /* Action Group Training Academy — not a branch, so it spans the full
            width under the four and stays monochrome: the parent brand, not
            one of the children. */
@@ -225,9 +260,17 @@
 
     <div class="loc-grid" id="locGrid">
         <!-- Action Utah -->
-        <button class="tile action" data-id="utah" data-name="Action Utah" data-brand="action">
+        <button class="tile action dual" data-id="utah" data-name="Action Utah" data-brand="action">
             <div class="t-bar"></div>
             <div class="t-mark">AP</div>
+            <!-- Utah runs two companies off one crew: Action + All Pro.
+                 The tile is sliced corner to corner — Action's black up top,
+                 All Pro's white with their real logo below. -->
+            <div class="ap-slice-line" aria-hidden="true"></div>
+            <div class="ap-slice" aria-hidden="true">
+                <img src="allpro-logo.png" alt="All Pro Service Group">
+                <div class="ap-slice-tag">ALL PRO</div>
+            </div>
             <div class="t-body">
                 <div class="t-name">ACTION <span style="color:var(--ap-red)">UTAH</span></div>
                 <div class="t-region">Action Plumbing · Heating · Air · Electric</div>

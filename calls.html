@@ -87,7 +87,15 @@ html.light input::placeholder,html.light textarea::placeholder{color:var(--faint
         /* ── BOTTOM ADD BUTTON ── */
         .add-call-bottom { width:100%;background:transparent;border:2px dashed rgba(220,38,38,0.3);color:var(--red);font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;padding:16px;cursor:pointer;transition:all 0.15s;margin-top:8px; }
         .add-call-bottom:hover { background:var(--red3);border-color:var(--red); }
-    </style>
+    
+/* ── ACTION / ALL PRO — Utah runs both companies off one crew ── */
+.company-seg{display:flex;gap:0;margin-bottom:12px;border:1px solid var(--wire2)}
+.cseg{flex:1;background:var(--s2);border:none;color:var(--muted);font-family:'Oswald',sans-serif;
+  font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;padding:9px 0;cursor:pointer}
+.cseg+.cseg{border-left:1px solid var(--wire2)}
+.cseg.on{background:var(--red);color:#fff}
+.cseg.allpro.on{background:#1d4ed8}
+</style>
 </head>
 <body>
 <div id="themeToggleWrap" style="position:fixed;top:12px;right:16px;z-index:9999;display:flex;flex-direction:row-reverse;align-items:center;gap:10px;"><img src="actionsite-logo.png" alt="Action Plumbing" class="hdr-logo" style="height:30px;width:auto;display:block"><style>@media(max-width:520px){.hdr-logo{height:22px!important}}</style>
@@ -177,9 +185,19 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
             const calls=snap.val(),arr=calls?Object.keys(calls).map(id=>({id,...calls[id]})):[];
             const container=document.getElementById('callsList');
             if(!arr.length){container.innerHTML='<p style="color:var(--muted);text-align:center;padding:32px;font-family:Oswald,sans-serif;letter-spacing:0.1em;text-transform:uppercase;font-size:13px;">No calls logged for this day</p>';return;}
-            container.innerHTML=arr.map(c=>`
+            const AP_SPLIT=(function(){try{var l=window.AP_LOCATION;return !!l&&(l.id==='utah'||l.id==='all');}catch(e){return false;}})();
+function companySeg(c){
+  if(!AP_SPLIT)return '';
+  var ap=c.company==='allpro';
+  return '<div class="company-seg">'+
+    '<button type="button" class="cseg'+(ap?'':' on')+'" onclick="updateCall(\''+c.id+'\',\'company\',\'action\')">ACTION</button>'+
+    '<button type="button" class="cseg allpro'+(ap?' on':'')+'" onclick="updateCall(\''+c.id+'\',\'company\',\'allpro\')">ALL PRO</button>'+
+  '</div>';
+}
+container.innerHTML=arr.map(c=>`
                 <div class="call-card">
                     <div class="call-card-header"><div class="call-label">Call Entry</div><button class="del-call" onclick="deleteCall('${c.id}')">Delete</button></div>
+            ${companySeg(c)}
                     <div class="field"><label>Customer Name</label><input type="text" value="${c.customerName||''}" onchange="updateCall('${c.id}','customerName',this.value)" placeholder="Customer Name" /></div>
                     <div class="field"><label>Job Number</label><input type="text" value="${c.jobNumber||''}" onchange="updateCall('${c.id}','jobNumber',this.value)" placeholder="Job Number" /></div>
                     <div class="field"><label>Phone</label><input type="tel" value="${c.customerPhone||''}" onchange="updateCall('${c.id}','customerPhone',this.value)" placeholder="Customer Phone" /></div>
@@ -245,7 +263,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                     </select></div>
                 </div>`).join('');
         });
-        const newCallPayload={customerName:'',jobNumber:'',customerPhone:'',reviewCompleted:false,reviewWithPic:false,restorationLead:false,turnoverAttempted:false,turnoverAccepted:false,threeDoorKnocks:false,stNotes:false,stickers:false,membershipPlanSold:false,upsellCompleted:false,upsellAmount:0,jobComplete:false,jobSold:false,amountSold:0,amountCollected:0,moneyOwed:0,paymentMethod:'',hasParts:false,hasLabor:false,isNewCustomer:false,leftEstimate:false,estimateAmount:0,jobCancelled:false,cancelReason:'',tradePlumbing:false,tradeHVAC:false,tradeElectrical:false,tradeCameras:false,actionThermostat:false,objection:'',soldFromTurnover:false,turnoverFrom:'',timestamp:Date.now(),timeOfDay:new Date().getHours()};
+        const newCallPayload={customerName:'',jobNumber:'',customerPhone:'',reviewCompleted:false,reviewWithPic:false,restorationLead:false,turnoverAttempted:false,turnoverAccepted:false,threeDoorKnocks:false,stNotes:false,stickers:false,company:'action',membershipPlanSold:false,upsellCompleted:false,upsellAmount:0,jobComplete:false,jobSold:false,amountSold:0,amountCollected:0,moneyOwed:0,paymentMethod:'',hasParts:false,hasLabor:false,isNewCustomer:false,leftEstimate:false,estimateAmount:0,jobCancelled:false,cancelReason:'',tradePlumbing:false,tradeHVAC:false,tradeElectrical:false,tradeCameras:false,actionThermostat:false,objection:'',soldFromTurnover:false,turnoverFrom:'',timestamp:Date.now(),timeOfDay:new Date().getHours()};
         const doAddCall=()=>{ db.ref(`callLogs/${key}`).push().set({...newCallPayload,timestamp:Date.now(),timeOfDay:new Date().getHours()}).then(ref=>{ setTimeout(()=>{ const cards=document.querySelectorAll('.call-card'); if(cards.length) cards[cards.length-1].scrollIntoView({behavior:'smooth',block:'start'}); },200); }); };
         document.getElementById('addCallBtn').onclick=doAddCall;
         document.getElementById('addCallBottom').onclick=doAddCall;

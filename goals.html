@@ -1387,5 +1387,114 @@ if ('serviceWorker' in navigator) {
 @media(max-width:520px){.gam-split{grid-template-columns:1fr}}
 </style>
 
+<script>
+/* ══════════════════════════════════════════════════════════════
+   ACTION / ALL PRO SPLIT — My Report
+   Utah runs both companies off one crew. Every call carries a
+   `company` field ('action' | 'allpro'); anything unset counts as
+   Action, so all history before this feature reads correctly.
+   Only shows at Utah (or the all-locations view). Same layer
+   pattern as the KPI + gamification cards: wraps renderAll, reads
+   the page globals, zero edits to the page.
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    function splitOn(){
+        try { var l = window.AP_LOCATION; return !!l && (l.id === 'utah' || l.id === 'all'); }
+        catch(e){ return false; }
+    }
+    if (!splitOn()) return;
+
+    var CO = { action:{label:'Action', cls:'a'}, allpro:{label:'All Pro', cls:'p'} };
+    function co(c){ return c && c.company === 'allpro' ? 'allpro' : 'action'; }
+
+    function mount(){
+        if (document.getElementById('splitCard')) return true;
+        var lbl = [...document.querySelectorAll('.sec-label')].find(function(el){ return /Scorecard/i.test(el.textContent); });
+        var anchor = lbl && lbl.closest('.card');
+        if (!anchor) return false;
+        var el = document.createElement('div');
+        el.className = 'card'; el.id = 'splitCard';
+        el.innerHTML =
+            '<div class="month-nav" style="margin-bottom:14px">' +
+              '<h2 style="font-size:16px">Action vs All Pro</h2>' +
+            '</div>' +
+            '<div class="sec-label">This Month</div><div id="splitMonth" class="split-wrap"></div>' +
+            '<div class="sec-label" style="margin-top:18px">Year to Date <span id="splitYr" style="color:var(--faint);letter-spacing:.04em"></span></div>' +
+            '<div id="splitYear" class="split-wrap"></div>';
+        anchor.parentNode.insertBefore(el, anchor.nextSibling);
+        return true;
+    }
+
+    function tally(dates){
+        var t = { action:{calls:0,sold:0,rev:0}, allpro:{calls:0,sold:0,rev:0} };
+        dates.forEach(function(d){
+            getCalls(selected, d).forEach(function(c){
+                var k = co(c), b = t[k];
+                b.calls++;
+                if (c.jobSold){ b.sold++; b.rev += parseFloat(c.amountSold) || 0; }
+            });
+        });
+        return t;
+    }
+
+    // walk every logged day this calendar year for the YTD numbers
+    function yearDates(){
+        var y = currentDate.getFullYear(), out = [], seen = {};
+        Object.keys(logs || {}).forEach(function(key){
+            var cut = key.lastIndexOf('_');
+            if (key.slice(0, cut) !== selected) return;
+            var ds = key.slice(cut + 1);
+            if (ds.slice(0,4) === String(y) && !seen[ds]){ seen[ds] = 1; out.push(new Date(ds + 'T00:00:00')); }
+        });
+        return out;
+    }
+
+    function bars(t){
+        var tot = t.action.rev + t.allpro.rev;
+        var max = Math.max(1, t.action.rev, t.allpro.rev);
+        function row(k){
+            var b = t[k], close = b.calls ? Math.round(b.sold / b.calls * 100) : 0;
+            return '<div class="split-row ' + CO[k].cls + '">' +
+                '<div class="sr-head"><span class="sr-name">' + CO[k].label + '</span>' +
+                    '<span class="sr-rev">$' + Math.round(b.rev).toLocaleString() + '</span></div>' +
+                '<div class="sr-bar"><div class="sr-fill" style="width:' + (b.rev / max * 100) + '%"></div></div>' +
+                '<div class="sr-meta">' + b.sold + ' sold · ' + b.calls + ' calls · ' + close + '% close</div>' +
+            '</div>';
+        }
+        return row('action') + row('allpro') +
+            '<div class="split-total"><span>Total</span><span>$' + Math.round(tot).toLocaleString() + '</span></div>';
+    }
+
+    window.renderSplit = function(){
+        try {
+            if (!selected || !mount()) return;
+            document.getElementById('splitMonth').innerHTML = bars(tally(getMDates(currentDate)));
+            document.getElementById('splitYear').innerHTML  = bars(tally(yearDates()));
+            document.getElementById('splitYr').textContent  = '— ' + currentDate.getFullYear();
+        } catch(e){}
+    };
+    var _ra = renderAll;
+    renderAll = function(){ _ra(); renderSplit(); };
+})();
+</script>
+<style>
+.split-wrap{margin-top:4px}
+.split-row{padding:10px 0;border-bottom:1px solid var(--wire)}
+.sr-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.sr-name{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.split-row.a .sr-name{color:#f87171}
+.split-row.p .sr-name{color:#93b4ff}
+.sr-rev{font-family:'Bebas Neue','Oswald',sans-serif;font-size:22px;letter-spacing:.5px;color:var(--text)}
+.sr-bar{height:6px;background:var(--s3);margin:7px 0 5px;overflow:hidden}
+.sr-fill{height:100%;transition:width .6s ease}
+.split-row.a .sr-fill{background:#dc2626}
+.split-row.p .sr-fill{background:#1d4ed8}
+.sr-meta{font-size:11px;color:var(--muted)}
+.split-total{display:flex;justify-content:space-between;align-items:baseline;padding:12px 0 2px;
+    font-family:'Bebas Neue','Oswald',sans-serif;letter-spacing:1px}
+.split-total span:first-child{font-size:14px;color:var(--muted);letter-spacing:.2em;text-transform:uppercase}
+.split-total span:last-child{font-size:26px;color:var(--text)}
+</style>
+
 </body>
 </html>
