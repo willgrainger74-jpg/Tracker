@@ -185,7 +185,19 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
             const calls=snap.val(),arr=calls?Object.keys(calls).map(id=>({id,...calls[id]})):[];
             const container=document.getElementById('callsList');
             if(!arr.length){container.innerHTML='<p style="color:var(--muted);text-align:center;padding:32px;font-family:Oswald,sans-serif;letter-spacing:0.1em;text-transform:uppercase;font-size:13px;">No calls logged for this day</p>';return;}
-            const AP_SPLIT=(function(){try{var l=window.AP_LOCATION;return !!l&&(l.id==='utah'||l.id==='all');}catch(e){return false;}})();
+            /* Job numbers identify the company: Action jobs are 9 digits starting
+   with 2 (20…24 series so far), All Pro are 8 digits starting 58/59/60 —
+   the same rule the July 2026 backfill used on the 2,700-call history.
+   Typing a job number sets the ACTION/ALL PRO toggle automatically, so
+   the split stays right even when nobody touches the toggle. A manual
+   tap still wins afterward — this only fires when the number changes. */
+function jobNumberChanged(id, v){
+    updateCall(id, 'jobNumber', v);
+    var jn = String(v || '').trim();
+    if (/^(58|59|60)\d{6}$/.test(jn) || /all\s*pro/i.test(jn)) updateCall(id, 'company', 'allpro');
+    else if (/^2\d{8}$/.test(jn)) updateCall(id, 'company', 'action');
+}
+const AP_SPLIT=(function(){try{var l=window.AP_LOCATION;return !!l&&(l.id==='utah'||l.id==='all');}catch(e){return false;}})();
 function companySeg(c){
   if(!AP_SPLIT)return '';
   var ap=c.company==='allpro';
@@ -199,7 +211,7 @@ container.innerHTML=arr.map(c=>`
                     <div class="call-card-header"><div class="call-label">Call Entry</div><button class="del-call" onclick="deleteCall('${c.id}')">Delete</button></div>
             ${companySeg(c)}
                     <div class="field"><label>Customer Name</label><input type="text" value="${c.customerName||''}" onchange="updateCall('${c.id}','customerName',this.value)" placeholder="Customer Name" /></div>
-                    <div class="field"><label>Job Number</label><input type="text" value="${c.jobNumber||''}" onchange="updateCall('${c.id}','jobNumber',this.value)" placeholder="Job Number" /></div>
+                    <div class="field"><label>Job Number</label><input type="text" value="${c.jobNumber||''}" onchange="jobNumberChanged('${c.id}',this.value)" placeholder="Job Number" /></div>
                     <div class="field"><label>Phone</label><input type="tel" value="${c.customerPhone||''}" onchange="updateCall('${c.id}','customerPhone',this.value)" placeholder="Customer Phone" /></div>
                     <label class="check-row"><input type="checkbox" ${c.jobSold?'checked':''} onchange="updateCall('${c.id}','jobSold',this.checked)"><span>💰 Job Sold</span></label>
                     ${c.jobSold?`<div class="subsection"><div class="subsection-title">Sale Details</div>
