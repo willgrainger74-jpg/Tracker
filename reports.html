@@ -344,10 +344,13 @@ if ('serviceWorker' in navigator) {
 <script>
 /* ══════════════════════════════════════════════════════════════
    ACTION / ALL PRO SPLIT — Team Report
-   Company-by-company breakdown of the whole team's numbers for the
-   period the report is showing. Only at Utah / all-locations.
-   Layer pattern: wraps renderAll, reuses the page's own getCalls,
-   allPeople, currentDate and getMDates. Zero page edits.
+   Two collapsible drop-downs: THIS MONTH and YEAR TO DATE. Each
+   shows the headline collapsed — Action revenue, All Pro revenue,
+   Total — and expands to the full metric-by-metric comparison
+   (close rate, calls, sold, review rate, memberships).
+   Only at Utah / all-locations. Layer pattern: wraps renderAll,
+   reuses the page's getCalls / allPeople / currentDate /
+   getMDates / getYDates. Zero page edits.
    ══════════════════════════════════════════════════════════════ */
 (function(){
     function splitOn(){
@@ -357,19 +360,45 @@ if ('serviceWorker' in navigator) {
     if (!splitOn()) return;
 
     function co(c){ return c && c.company === 'allpro' ? 'allpro' : 'action'; }
+    function blank(){ return { calls:0, sold:0, rev:0, reviews:0, plans:0, turnovers:0 }; }
+    var open = { m: sessionStorage.getItem('tsOpen_m') === '1',
+                 y: sessionStorage.getItem('tsOpen_y') === '1' };
 
     function mount(){
         if (document.getElementById('teamSplit')) return true;
         var page = document.querySelector('.page');
         if (!page) return false;
-        // drop it right under the page header so it's the first thing after the title
         var header = document.querySelector('.pg-header');
         var el = document.createElement('div');
         el.className = 'card'; el.id = 'teamSplit';
-        el.innerHTML = '<div class="sec-label">Action vs All Pro <span id="tsWhen" style="color:var(--faint);letter-spacing:.04em"></span></div><div id="tsBody"></div>';
+        el.innerHTML =
+            '<div class="sec-label">Action vs All Pro</div>' +
+            section('m') + section('y');
         if (header && header.parentNode === page) page.insertBefore(el, header.nextSibling);
         else page.insertBefore(el, page.firstChild);
+
+        ['m','y'].forEach(function(k){
+            document.getElementById('tsHead_' + k).addEventListener('click', function(){
+                open[k] = !open[k];
+                sessionStorage.setItem('tsOpen_' + k, open[k] ? '1' : '0');
+                apply(k);
+            });
+        });
         return true;
+    }
+    function section(k){
+        return '<div class="ts-sec" id="tsSec_' + k + '">' +
+            '<button type="button" class="ts-head" id="tsHead_' + k + '">' +
+                '<span class="ts-period" id="tsPeriod_' + k + '"></span>' +
+                '<span class="ts-sums" id="tsSums_' + k + '"></span>' +
+                '<span class="ts-chev">▾</span>' +
+            '</button>' +
+            '<div class="ts-body" id="tsBody_' + k + '"></div>' +
+        '</div>';
+    }
+    function apply(k){
+        var sec = document.getElementById('tsSec_' + k);
+        if (sec) sec.classList.toggle('open', !!open[k]);
     }
 
     function tally(dates){
@@ -388,10 +417,12 @@ if ('serviceWorker' in navigator) {
         });
         return t;
     }
-    function blank(){ return { calls:0, sold:0, rev:0, reviews:0, plans:0, turnovers:0 }; }
+
+    var money = function(x){ return '$' + Math.round(x).toLocaleString(); };
+    var pct = function(n,d){ return d ? Math.round(n/d*100) : 0; };
 
     function metric(label, av, pv, fmt){
-        fmt = fmt || (x => x);
+        fmt = fmt || function(x){ return x; };
         var max = Math.max(1, av, pv);
         return '<div class="tsm">' +
             '<div class="tsm-lbl">' + label + '</div>' +
@@ -403,27 +434,34 @@ if ('serviceWorker' in navigator) {
             '</div></div>';
     }
 
+    function fill(k, label, t){
+        var a = t.action, p = t.allpro;
+        document.getElementById('tsPeriod_' + k).textContent = label;
+        document.getElementById('tsSums_' + k).innerHTML =
+            '<span class="s-a">' + money(a.rev) + '</span>' +
+            '<span class="s-p">' + money(p.rev) + '</span>' +
+            '<span class="s-t">' + money(a.rev + p.rev) + '</span>';
+        document.getElementById('tsBody_' + k).innerHTML =
+            '<div class="ts-cols"><span class="ts-a">ACTION</span><span class="ts-p">ALL PRO</span></div>' +
+            metric('Revenue',     a.rev, p.rev, money) +
+            metric('Close Rate',  pct(a.sold, a.calls), pct(p.sold, p.calls), function(x){ return x + '%'; }) +
+            metric('Calls',       a.calls, p.calls) +
+            metric('Sold',        a.sold, p.sold) +
+            metric('Review Rate', pct(a.reviews, a.calls), pct(p.reviews, p.calls), function(x){ return x + '%'; }) +
+            metric('Memberships', a.plans, p.plans) +
+            '<div class="ts-total"><span>Combined</span><span>' + money(a.rev + p.rev) + '</span></div>';
+        apply(k);
+    }
+
     window.renderTeamSplit = function(){
         try {
             if (!mount()) return;
-            var dates = (typeof getDates === 'function') ? getDates() : getMDates(currentDate);
-            var t = tally(dates);
-            var a = t.action, p = t.allpro;
-            var pct = (n,d) => d ? Math.round(n/d*100) : 0;
-            var money = x => '$' + Math.round(x).toLocaleString();
-
-            document.getElementById('tsWhen').textContent = '— ' +
-                currentDate.toLocaleString('en-US',{month:'long', year:'numeric'});
-
-            document.getElementById('tsBody').innerHTML =
-                '<div class="ts-head"><span class="ts-a">ACTION</span><span class="ts-p">ALL PRO</span></div>' +
-                metric('Revenue',    a.rev, p.rev, money) +
-                metric('Close Rate', pct(a.sold,a.calls), pct(p.sold,p.calls), x=>x+'%') +
-                metric('Calls',      a.calls, p.calls) +
-                metric('Sold',       a.sold, p.sold) +
-                metric('Review Rate',pct(a.reviews,a.calls), pct(p.reviews,p.calls), x=>x+'%') +
-                metric('Memberships',a.plans, p.plans) +
-                '<div class="ts-total"><span>Combined Revenue</span><span>' + money(a.rev + p.rev) + '</span></div>';
+            var mName = currentDate.toLocaleString('en-US', { month:'long' });
+            fill('m', mName, tally(getMDates(currentDate)));
+            var yDates = (typeof getYDates === 'function')
+                ? getYDates(currentDate.getFullYear())
+                : getMDates(currentDate);
+            fill('y', String(currentDate.getFullYear()), tally(yDates));
         } catch(e){}
     };
     var _ra = renderAll;
@@ -431,7 +469,22 @@ if ('serviceWorker' in navigator) {
 })();
 </script>
 <style>
-#teamSplit .ts-head{display:flex;justify-content:space-between;margin-bottom:10px;
+#teamSplit .ts-sec{border:1px solid var(--wire);margin-top:10px}
+#teamSplit .ts-head{width:100%;display:flex;align-items:center;gap:12px;background:var(--s2);border:none;
+    color:var(--text);padding:12px 14px;cursor:pointer;text-align:left}
+#teamSplit .ts-head:hover{background:var(--s3)}
+#teamSplit .ts-period{font-family:'Bebas Neue','Oswald',sans-serif;font-size:19px;letter-spacing:1.2px;flex:none;min-width:74px}
+#teamSplit .ts-sums{flex:1;display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;
+    font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.06em}
+#teamSplit .ts-sums span{padding:3px 9px;border:1px solid var(--wire2);white-space:nowrap}
+#teamSplit .s-a{color:#f87171;border-color:rgba(220,38,38,.45)!important}
+#teamSplit .s-p{color:#93b4ff;border-color:rgba(29,78,216,.55)!important}
+#teamSplit .s-t{color:var(--text);font-weight:600}
+#teamSplit .ts-chev{flex:none;color:var(--muted);transition:transform .2s}
+#teamSplit .ts-sec.open .ts-chev{transform:rotate(180deg)}
+#teamSplit .ts-body{display:none;padding:4px 14px 14px;border-top:1px solid var(--wire)}
+#teamSplit .ts-sec.open .ts-body{display:block}
+#teamSplit .ts-cols{display:flex;justify-content:space-between;margin:10px 0 4px;
     font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
 #teamSplit .ts-a{color:#f87171}
 #teamSplit .ts-p{color:#93b4ff}
@@ -446,10 +499,11 @@ if ('serviceWorker' in navigator) {
 .tsm-bar{flex:1;height:6px;background:var(--s3);overflow:hidden}
 .tsm-fill{height:100%;float:right;background:#dc2626}
 .tsm-bar.r .tsm-fill{float:left;background:#1d4ed8}
-.ts-total{display:flex;justify-content:space-between;align-items:baseline;padding:14px 0 2px;
+.ts-total{display:flex;justify-content:space-between;align-items:baseline;padding:12px 0 2px;
     font-family:'Bebas Neue','Oswald',sans-serif;letter-spacing:1px}
-.ts-total span:first-child{font-size:14px;color:var(--muted);letter-spacing:.18em;text-transform:uppercase}
-.ts-total span:last-child{font-size:28px;color:var(--text)}
+.ts-total span:first-child{font-size:13px;color:var(--muted);letter-spacing:.18em;text-transform:uppercase}
+.ts-total span:last-child{font-size:24px;color:var(--text)}
+@media(max-width:560px){#teamSplit .ts-period{min-width:58px;font-size:17px}#teamSplit .ts-sums{font-size:10px;gap:5px}}
 </style>
 
 </body>

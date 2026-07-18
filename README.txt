@@ -1,41 +1,29 @@
-THE ACTION GROUP TRACKER  (v17)
+THE ACTION GROUP TRACKER  (v18)
 ================================
-Two things: the Action/All Pro history is now backfilled, and job
-numbers set the company automatically from here on.
+The Team Report's Action vs All Pro card is now two collapsible
+drop-downs — one monthly, one yearly.
 
-1. THE BACKFILL — ALREADY DONE, LIVE IN THE DATABASE
------------------------------------------------------
-  Nothing to run. Every Utah call in history was scanned by job number.
-  The stated rule was "60 = All Pro, 24 = Action", but the data showed
-  those are just the NEWEST series of each: older Action jobs start
-  20/21/22/23 (9 digits), older All Pro jobs start 58/59 (8 digits),
-  and 55 calls literally had "All pro" typed as the job number. So the
-  real rule applied was:
-      8 digits starting 58/59/60, or "all pro" text  ->  All Pro
-      everything else                                 ->  Action
-  Result, verified live: 193 All Pro calls / 150 sold / $733,344.
-  Manually-flipped toggles were respected; only untagged calls and
-  v15's automatic defaults were changed. My Report and Team Report
-  splits now include the full history.
+WHAT CHANGED (reports.html)
+----------------------------
+  Two sections, each its own drop-down:
+    JULY   Action $x   All Pro $x   Total $x        ▾
+    2026   Action $x   All Pro $x   Total $x        ▾
+  Collapsed (the default) each shows just the headline: Action revenue
+  in red, All Pro in blue, Total in white. Tap a row and it drops down
+  the full head-to-head — Revenue, Close Rate, Calls, Sold, Review
+  Rate, Memberships — in the same mirror-bar layout as before, with
+  Combined at the bottom.
 
-2. JOB NUMBERS NOW DRIVE THE TOGGLE (calls.html)
--------------------------------------------------
-  Typing a job number sets ACTION/ALL PRO automatically:
-      58/59/60xxxxxx (8 digits) or "all pro"  -> ALL PRO
-      2xxxxxxxx (9 digits)                    -> ACTION
-      anything else (blank, partial, names)   -> no change
-  A manual tap on the toggle still wins afterward — the auto-set only
-  fires when the job number itself changes. If All Pro's numbers ever
-  roll into a 61* series, add it to the regex in jobNumberChanged().
+  The two open and close independently, and each remembers whether you
+  left it open for the rest of the session. The month follows the
+  month arrows on the report; the year is the full calendar year of
+  whatever month you're viewing.
 
-3. CNAME FILE (new, do not delete)
------------------------------------
-  The repo root now contains a file named CNAME with
-  "actiongrouptracker.net" — GitHub Pages requires it for the custom
-  domain. It's baked into this and every future package, so uploading
-  a full zip can't knock the domain offline.
+  Verified against the live database (with the job-number backfill in):
+  July = Action $717,513 / All Pro $218,934 / $936,447 total, and the
+  numbers always sum.
 
 INSTALL
 -------
 1. Upload everything to the repo root.
-2. Hard-refresh (SW cache bumped to action-group-v12).
+2. Hard-refresh (SW cache bumped to action-group-v13).
