@@ -1,29 +1,36 @@
-THE ACTION GROUP TRACKER  (v18)
-================================
-The Team Report's Action vs All Pro card is now two collapsible
-drop-downs — one monthly, one yearly.
+THE ACTION GROUP TRACKER  (v19)  — JOB NUMBER SAVE FIX
+=======================================================
+Fixes "I typed the job number and it didn't save."
 
-WHAT CHANGED (reports.html)
-----------------------------
-  Two sections, each its own drop-down:
-    JULY   Action $x   All Pro $x   Total $x        ▾
-    2026   Action $x   All Pro $x   Total $x        ▾
-  Collapsed (the default) each shows just the headline: Action revenue
-  in red, All Pro in blue, Total in white. Tap a row and it drops down
-  the full head-to-head — Revenue, Close Rate, Calls, Sold, Review
-  Rate, Memberships — in the same mirror-bar layout as before, with
-  Combined at the bottom.
+WHAT WAS HAPPENING
+------------------
+  Every Firebase write re-renders the whole call list (innerHTML).
+  On truck LTE a write's confirmation can land seconds late — while
+  the tech is already typing the job number. The rebuild destroys the
+  input mid-entry; iOS fires no change event for a removed element, so
+  the half-typed number silently vanishes and the field snaps back to
+  its old value. v17 made it worse at exactly that field: setting the
+  job number fired TWO writes (jobNumber, then company), doubling the
+  re-renders at entry time. Reproduced in a browser test: the old
+  behavior wipes a focused input to "" and drops focus.
 
-  The two open and close independently, and each remembers whether you
-  left it open for the rest of the session. The month follows the
-  month arrows on the report; the year is the full calendar year of
-  whatever month you're viewing.
-
-  Verified against the live database (with the job-number backfill in):
-  July = Action $717,513 / All Pro $218,934 / $936,447 total, and the
-  numbers always sum.
+THE FIX (calls.html)
+--------------------
+  1. TYPING GUARD — while a text field in the call list has focus,
+     incoming re-renders are held (the latest snapshot is stashed
+     instead of drawn). Checkbox taps and the ACTION/ALL PRO toggle
+     never block rendering.
+  2. BLUR REPLAY — when the field loses focus, the held snapshot is
+     replayed (after a short beat so the field's own save goes out
+     first), so the list never goes stale.
+  3. ATOMIC WRITE — job number + auto-detected company now save in ONE
+     update instead of two, halving re-render events at the moment of
+     entry.
+  Verified: a late event landing mid-typing no longer touches the
+  input; the final save carries {jobNumber, company} together.
 
 INSTALL
 -------
 1. Upload everything to the repo root.
-2. Hard-refresh (SW cache bumped to action-group-v13).
+2. Hard-refresh (SW cache bumped to action-group-v14). Tell the guys
+   to force-close and reopen the app once so the new calls.html loads.

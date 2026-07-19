@@ -181,23 +181,11 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
         document.getElementById('fabAddCall').style.display='flex';
         document.getElementById('addCallBottom').style.display='block';
         const key=dataKey(date);
-        db.ref(`callLogs/${key}`).on('value',snap=>{
+        db.ref(`callLogs/${key}`).on('value',snap=>{window.__lastCallsSnap=snap;if(apTypingGuard())return;window.__renderCalls(snap);}); window.__renderCalls=(snap=>{
             const calls=snap.val(),arr=calls?Object.keys(calls).map(id=>({id,...calls[id]})):[];
             const container=document.getElementById('callsList');
             if(!arr.length){container.innerHTML='<p style="color:var(--muted);text-align:center;padding:32px;font-family:Oswald,sans-serif;letter-spacing:0.1em;text-transform:uppercase;font-size:13px;">No calls logged for this day</p>';return;}
-            /* Job numbers identify the company: Action jobs are 9 digits starting
-   with 2 (20…24 series so far), All Pro are 8 digits starting 58/59/60 —
-   the same rule the July 2026 backfill used on the 2,700-call history.
-   Typing a job number sets the ACTION/ALL PRO toggle automatically, so
-   the split stays right even when nobody touches the toggle. A manual
-   tap still wins afterward — this only fires when the number changes. */
-function jobNumberChanged(id, v){
-    updateCall(id, 'jobNumber', v);
-    var jn = String(v || '').trim();
-    if (/^(58|59|60)\d{6}$/.test(jn) || /all\s*pro/i.test(jn)) updateCall(id, 'company', 'allpro');
-    else if (/^2\d{8}$/.test(jn)) updateCall(id, 'company', 'action');
-}
-const AP_SPLIT=(function(){try{var l=window.AP_LOCATION;return !!l&&(l.id==='utah'||l.id==='all');}catch(e){return false;}})();
+            const AP_SPLIT=(function(){try{var l=window.AP_LOCATION;return !!l&&(l.id==='utah'||l.id==='all');}catch(e){return false;}})();
 function companySeg(c){
   if(!AP_SPLIT)return '';
   var ap=c.company==='allpro';
@@ -282,7 +270,45 @@ container.innerHTML=arr.map(c=>`
         document.getElementById('fabAddCall').onclick=doAddCall;
     }
     function handleAmountChange(callId){const key=dataKey(getWeek(currentDate).find(d=>dk(d)===selectedDate));const sold=parseFloat(document.getElementById(`amountSold_${callId}`).value)||0,collected=parseFloat(document.getElementById(`amountCollected_${callId}`).value)||0,owed=calculateMoneyOwed(sold,collected);db.ref(`callLogs/${key}/${callId}`).update({amountSold:sold,amountCollected:collected,moneyOwed:owed});document.getElementById(`moneyOwed_${callId}`).textContent=`$${owed.toLocaleString()}`;}
-    function updateCall(callId,field,value){const key=dataKey(getWeek(currentDate).find(d=>dk(d)===selectedDate));db.ref(`callLogs/${key}/${callId}/${field}`).set(value);}
+    /* ── typing guard ─────────────────────────────────────────────
+   Every Firebase write re-renders the whole call list via innerHTML.
+   If that lands while a tech is typing (their own checkbox write
+   confirming a few seconds late on truck LTE), the rebuild destroys
+   the focused input mid-entry — iOS fires no change event for a
+   removed element, so the half-typed job number silently vanishes.
+   Fix: while a text field inside the list has focus, stash the
+   snapshot instead of rendering; replay it on blur. Checkbox taps
+   and the ACTION/ALL PRO toggle never block rendering. */
+function apTypingGuard(){
+    var el = document.activeElement;
+    return !!(el && el.closest && el.closest('#callsList') &&
+        ((el.tagName === 'INPUT' && ['text','tel','number','search','date','time'].indexOf(el.type) !== -1)
+         || el.tagName === 'TEXTAREA'));
+}
+document.addEventListener('blur', function(e){
+    var el = e.target;
+    if (!(el && el.closest && el.closest('#callsList'))) return;
+    // wait a beat so the field's own change-write goes out first
+    setTimeout(function(){
+        if (window.__lastCallsSnap && window.__renderCalls && !apTypingGuard())
+            window.__renderCalls(window.__lastCallsSnap);
+    }, 140);
+}, true);
+
+/* Job numbers identify the company: Action jobs are 9 digits starting
+   with 2 (20…24 series so far), All Pro are 8 digits starting 58/59/60 —
+   the same rule the July 2026 backfill used on the 2,700-call history.
+   Typing a job number sets the ACTION/ALL PRO toggle automatically, so
+   the split stays right even when nobody touches the toggle. A manual
+   tap still wins afterward — this only fires when the number changes. */
+function jobNumberChanged(id, v){
+    var jn = String(v || '').trim(), payload = { jobNumber: v };
+    if (/^(58|59|60)\d{6}$/.test(jn) || /all\s*pro/i.test(jn)) payload.company = 'allpro';
+    else if (/^2\d{8}$/.test(jn)) payload.company = 'action';
+    var key = dataKey(getWeek(currentDate).find(d => dk(d) === selectedDate));
+    db.ref(`callLogs/${key}/${id}`).update(payload);   // one write, one re-render
+}
+function updateCall(callId,field,value){const key=dataKey(getWeek(currentDate).find(d=>dk(d)===selectedDate));db.ref(`callLogs/${key}/${callId}/${field}`).set(value);}
     function deleteCall(callId){if(confirm('Delete this call?')){const key=dataKey(getWeek(currentDate).find(d=>dk(d)===selectedDate));db.ref(`callLogs/${key}/${callId}`).remove();}}
     const hideExtras=()=>{ document.getElementById('callsSection').style.display='none'; document.getElementById('fabAddCall').style.display='none'; document.getElementById('addCallBottom').style.display='none'; };
     document.getElementById('prevWeek').onclick=()=>{currentDate=new Date(currentDate.getTime()-7*24*60*60*1000);selectedDate=null;hideExtras();renderCalendar();};
