@@ -648,7 +648,7 @@ function initPortal(){
     document.getElementById('ghYear').textContent=ghYear;
     db.ref('salespeople').on('value',snap=>{
         const d=snap.val()||{};
-        allPeople=Object.keys(d).map(k=>({id:k,name:d[k].name,color:d[k].color||'#dc2626',startDate:d[k].startDate||null,archived:d[k].archived||false}));
+        allPeople=Object.keys(d).map(k=>({id:k,name:d[k].name,color:d[k].color||'#dc2626',startDate:d[k].startDate||null,empCode:d[k].empCode||'',archived:d[k].archived||false}));
         people=allPeople.filter(p=>!p.archived);
         populateRepSelects();renderCurrentTab();
         if(currentTab==='techlogins')renderTechLogins();
@@ -878,6 +878,8 @@ function renderRepProfiles(){
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
                 <div><div style="font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Start Date</div>
                 <input type="date" value="${p.startDate||''}" onchange="db.ref('salespeople/${p.id}/startDate').set(this.value)" /></div>
+                ${(window.AP_LOCATION||{}).id==='arizona'?`<div><div style="font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Employee Code</div>
+                <input type="text" value="${p.empCode||''}" onchange="db.ref('salespeople/${p.id}/empCode').set(this.value.trim())" placeholder="Must match this rep's code in the payroll tracker" /></div>`:''}
                 <div><div style="font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Strengths</div>
                 <input type="text" value="${profile.strengths||''}" onchange="saveProfile('${p.id}','strengths',this.value)" placeholder="e.g. great closer, reviews" /></div>
                 <div><div style="font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Areas to Improve</div>

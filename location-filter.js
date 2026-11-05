@@ -101,12 +101,25 @@
        sub-paths all follow, so goals.html and reports.html need no edits.
 
        Add a node name here and it becomes per-location instantly.
-       NOT scoped (deliberately company-wide for now): announcements,
-       monthlyCompetition, competitionMeta, competitionFeed, commissionRate,
-       commissionTiers, huddleSummaries.
+       (v20 split — each branch owns its announcements, competitions,
+       commission tiers, huddles and door knocks. Root copies of these
+       are kept as backup and as what the company-wide 'all' view reads,
+       since FILTER_ON is false for 'all'/'academy'.)
+       Still shared on purpose: managerPin, trackerPassword, academy/*,
+       commissionRate, and all person-keyed nodes (goals, repProfiles,
+       coachNotes, workbooks, gym, training) — person data follows the
+       rep, and rosters are already filtered.
        ───────────────────────────────────────────────────────────────── */
     var SCOPED_PATHS = {
-        teamYearlyGoals: 1
+        teamYearlyGoals: 1,
+        announcements: 1,
+        monthlyCompetition: 1,
+        competitionMeta: 1,
+        competitionFeed: 1,
+        competitionResults: 1,
+        commissionTiers: 1,
+        huddleSummaries: 1,
+        doorKnocks: 1
     };
 
     /* which location uses which brand */
