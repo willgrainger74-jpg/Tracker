@@ -88,6 +88,25 @@ html.light input::placeholder,html.light textarea::placeholder{color:var(--faint
         .add-call-bottom { width:100%;background:transparent;border:2px dashed rgba(220,38,38,0.3);color:var(--red);font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;padding:16px;cursor:pointer;transition:all 0.15s;margin-top:8px; }
         .add-call-bottom:hover { background:var(--red3);border-color:var(--red); }
     
+/* ── COLLAPSIBLE CALL CARDS ── */
+.cc-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;color:var(--text);padding:14px 16px;font:inherit;-webkit-tap-highlight-color:transparent}
+.cc-row:hover{background:var(--s3)}
+.cc-n{flex:none;width:28px;height:28px;display:grid;place-items:center;border-radius:50%;background:var(--s3);border:1px solid var(--wire2);font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;color:var(--muted)}
+.cc-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cc-name{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-meta{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-pill{flex:none;font-family:'Oswald',sans-serif;font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:999px;border:1px solid var(--wire2);color:var(--muted);white-space:nowrap}
+.cc-sold{border-left-color:#22c55e}.cc-sold .cc-pill{color:#22c55e;border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.1)}
+.cc-est{border-left-color:#f59e0b}.cc-est .cc-pill{color:#f59e0b;border-color:rgba(245,158,11,.45);background:rgba(245,158,11,.1)}
+.cc-lost .cc-pill{color:var(--red);border-color:rgba(220,38,38,.45);background:rgba(220,38,38,.1)}
+.cc-open{border-left-color:var(--wire2)}
+.cc-chev{flex:none;color:var(--muted);font-size:12px}
+.cc-fold{background:var(--s3);border:1px solid var(--wire2);color:var(--muted);width:34px;height:32px;border-radius:10px;cursor:pointer;font-size:12px}
+.cc-fold:hover{color:var(--text)}
+.cc-done{width:100%;margin-top:6px;background:var(--s3);border:1px solid var(--wire2);color:var(--text);border-radius:10px;font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;padding:12px;cursor:pointer}
+.cc-done:hover{border-color:var(--muted)}
+@media(max-width:420px){.cc-pill{font-size:10.5px;padding:4px 8px}.cc-row{gap:9px;padding:13px 12px}}
+
 /* ── ACTION / ALL PRO — Utah runs both companies off one crew ── */
 .company-seg{display:flex;gap:0;margin-bottom:12px;border:1px solid var(--wire2)}
 .cseg{flex:1;background:var(--s2);border:none;color:var(--muted);font-family:'Oswald',sans-serif;
@@ -96,6 +115,7 @@ html.light input::placeholder,html.light textarea::placeholder{color:var(--faint
 .cseg.on{background:var(--red);color:#fff}
 .cseg.allpro.on{background:#1d4ed8}
 </style>
+<link rel="stylesheet" href="ui.css">
 </head>
 <body>
 <div id="themeToggleWrap" style="position:fixed;top:12px;right:16px;z-index:9999;display:flex;flex-direction:row-reverse;align-items:center;gap:10px;"><img src="actionsite-logo.png" alt="Action Plumbing" class="hdr-logo" style="height:30px;width:auto;display:block"><style>@media(max-width:520px){.hdr-logo{height:22px!important}}</style>
@@ -174,6 +194,34 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
             });
         });
     }
+    /* ── collapsible call cards ── */
+    let ccState={},ccFirst=true;
+    const ccEsc=t=>String(t==null?'':t).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    const ccDone=c=>!!(c.jobSold||c.jobCancelled||c.leftEstimate||c.couldntFinance);
+    function ccStatus(c){
+        const $=n=>'$'+Math.round(parseFloat(n)||0).toLocaleString();
+        if(c.jobSold) return {cls:'sold',txt:'Sold '+$(c.amountSold)};
+        if(c.couldntFinance) return {cls:'lost',txt:"Couldn't finance"+(parseFloat(c.financeLostAmount)?' · '+$(c.financeLostAmount):'')};
+        if(c.jobCancelled) return {cls:'lost',txt:'Cancelled'};
+        if(c.leftEstimate) return {cls:'est',txt:'Estimate'+(parseFloat(c.estimateAmount)?' '+$(c.estimateAmount):'')};
+        return {cls:'open',txt:'In progress'};
+    }
+    function ccSummary(c,i){
+        const st=ccStatus(c);
+        const trades=[c.tradePlumbing&&'Plumbing',c.tradeHVAC&&'HVAC',c.tradeElectrical&&'Electrical',c.tradeCameras&&'Cameras'].filter(Boolean).join(' · ');
+        const meta=[c.jobNumber&&'#'+ccEsc(c.jobNumber),trades,c.existingCustomer&&'Existing'].filter(Boolean).join(' · ');
+        return `<button type="button" class="call-card cc-row cc-${st.cls}" onclick="ccToggle('${c.id}')">
+            <span class="cc-n">${i+1}</span>
+            <span class="cc-main"><span class="cc-name">${ccEsc(c.customerName)||'No name yet'}</span>${meta?`<span class="cc-meta">${meta}</span>`:''}</span>
+            <span class="cc-pill">${st.txt}</span>
+            <span class="cc-chev">▾</span>
+        </button>`;
+    }
+    function ccToggle(id){
+        ccState[id]=!ccState[id];
+        if(window.__lastCallsSnap&&window.__renderCalls) window.__renderCalls(window.__lastCallsSnap);
+        if(ccState[id]) setTimeout(()=>{const el=document.querySelector('[data-cc="'+id+'"]');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},40);
+    }
     function calculateMoneyOwed(sold,collected){return Math.max(0,(parseFloat(sold)||0)-(parseFloat(collected)||0));}
     function renderCalls(date){
         document.getElementById('callsSection').style.display='block';
@@ -181,7 +229,11 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
         document.getElementById('fabAddCall').style.display='flex';
         document.getElementById('addCallBottom').style.display='block';
         const key=dataKey(date);
-        db.ref(`callLogs/${key}`).on('value',snap=>{window.__lastCallsSnap=snap;if(apTypingGuard())return;window.__renderCalls(snap);}); window.__renderCalls=(snap=>{
+        /* one live listener at a time — opening another day used to leave the old day's listener attached */
+        if(window.__callsRef){try{window.__callsRef.off();}catch(e){}}
+        window.__callsRef=db.ref(`callLogs/${key}`);
+        ccState={};ccFirst=true;
+        window.__callsRef.on('value',snap=>{window.__lastCallsSnap=snap;if(apTypingGuard())return;window.__renderCalls(snap);}); window.__renderCalls=(snap=>{
             const calls=snap.val(),arr=calls?Object.keys(calls).map(id=>({id,...calls[id]})):[];
             const container=document.getElementById('callsList');
             if(!arr.length){container.innerHTML='<p style="color:var(--muted);text-align:center;padding:32px;font-family:Oswald,sans-serif;letter-spacing:0.1em;text-transform:uppercase;font-size:13px;">No calls logged for this day</p>';return;}
@@ -194,13 +246,19 @@ function companySeg(c){
     '<button type="button" class="cseg allpro'+(ap?' on':'')+'" onclick="updateCall(\''+c.id+'\',\'company\',\'allpro\')">ALL PRO</button>'+
   '</div>';
 }
-container.innerHTML=arr.map(c=>`
-                <div class="call-card">
-                    <div class="call-card-header"><div class="call-label">Call Entry</div><button class="del-call" onclick="deleteCall('${c.id}')">Delete</button></div>
+/* collapse: when a day is first opened, calls that already have an outcome fold to one line.
+   Anything added or opened after that stays open until the tech folds it, so a card never
+   snaps shut mid-entry just because "Job Sold" was ticked. */
+arr.forEach(c=>{ if(!(c.id in ccState)) ccState[c.id]=ccFirst?!ccDone(c):true; });
+ccFirst=false;
+container.innerHTML=arr.map((c,i)=>!ccState[c.id]?ccSummary(c,i):`
+                <div class="call-card" data-cc="${c.id}">
+                    <div class="call-card-header"><div class="call-label">Call ${i+1}</div><div style="display:flex;gap:8px;align-items:center"><button class="del-call" onclick="deleteCall('${c.id}')">Delete</button><button class="cc-fold" onclick="ccToggle('${c.id}')" aria-label="Collapse call">▴</button></div></div>
             ${companySeg(c)}
                     <div class="field"><label>Customer Name</label><input type="text" value="${c.customerName||''}" onchange="updateCall('${c.id}','customerName',this.value)" placeholder="Customer Name" /></div>
                     <div class="field"><label>Job Number</label><input type="text" value="${c.jobNumber||''}" onchange="jobNumberChanged('${c.id}',this.value)" placeholder="Job Number" /></div>
                     <div class="field"><label>Phone</label><input type="tel" value="${c.customerPhone||''}" onchange="updateCall('${c.id}','customerPhone',this.value)" placeholder="Customer Phone" /></div>
+                    <label class="check-row"><input type="checkbox" ${c.existingCustomer?'checked':''} onchange="updateCall('${c.id}','existingCustomer',this.checked)"><span>🔁 Existing Customer</span></label>
                     <label class="check-row"><input type="checkbox" ${c.jobSold?'checked':''} onchange="updateCall('${c.id}','jobSold',this.checked)"><span>💰 Job Sold</span></label>
                     ${c.jobSold?`<div class="subsection"><div class="subsection-title">Sale Details</div>
                         <div class="field"><label>Amount Sold ($)</label><input id="amountSold_${c.id}" type="number" value="${c.amountSold||''}" onchange="handleAmountChange('${c.id}')" placeholder="0.00" /></div>
@@ -226,6 +284,8 @@ container.innerHTML=arr.map(c=>`
                     ${c.jobCancelled?`<div class="field"><label>Reason</label><textarea onchange="updateCall('${c.id}','cancelReason',this.value)" rows="2">${c.cancelReason||''}</textarea></div>`:''}
                     <label class="check-row"><input type="checkbox" ${c.leftEstimate?'checked':''} onchange="updateCall('${c.id}','leftEstimate',this.checked)"><span>📋 Left Estimate</span></label>
                     ${c.leftEstimate?`<div class="field"><label>Estimate Amount ($)</label><input type="number" value="${c.estimateAmount||''}" onchange="updateCall('${c.id}','estimateAmount',parseFloat(this.value)||0)" /></div>`:''}
+                    <label class="check-row"><input type="checkbox" ${c.couldntFinance?'checked':''} onchange="updateCall('${c.id}','couldntFinance',this.checked)"><span>🏦 Couldn't Finance Customer</span></label>
+                    ${c.couldntFinance?`<div class="subsection fin-lost"><div class="subsection-title">Lost to Financing</div><div class="field" style="margin-bottom:0"><label>Dollar Amount Lost ($)</label><input type="number" inputmode="decimal" value="${c.financeLostAmount||''}" onchange="updateCall('${c.id}','financeLostAmount',parseFloat(this.value)||0)" placeholder="${c.estimateAmount?c.estimateAmount:'0.00'}" /></div></div>`:''}
                     <hr class="divider"><div class="section-label">Trade Type</div>
                     <div class="trade-grid">
                         <label class="check-row"><input type="checkbox" ${c.tradePlumbing?'checked':''} onchange="updateCall('${c.id}','tradePlumbing',this.checked)"><span>🔧 Plumbing</span></label>
@@ -261,9 +321,10 @@ container.innerHTML=arr.map(c=>`
                         <option value="timing" ${c.objection==='timing'?'selected':''}>⏰ Not now</option>
                         <option value="trust" ${c.objection==='trust'?'selected':''}>⚠️ Trust/Reviews</option>
                     </select></div>
+                    <button type="button" class="cc-done" onclick="ccToggle('${c.id}')">✓ Done — Collapse</button>
                 </div>`).join('');
         });
-        const newCallPayload={customerName:'',jobNumber:'',customerPhone:'',reviewCompleted:false,reviewWithPic:false,restorationLead:false,turnoverAttempted:false,turnoverAccepted:false,threeDoorKnocks:false,stNotes:false,stickers:false,company:'action',membershipPlanSold:false,upsellCompleted:false,upsellAmount:0,jobComplete:false,jobSold:false,amountSold:0,amountCollected:0,moneyOwed:0,paymentMethod:'',hasParts:false,hasLabor:false,isNewCustomer:false,leftEstimate:false,estimateAmount:0,jobCancelled:false,cancelReason:'',tradePlumbing:false,tradeHVAC:false,tradeElectrical:false,tradeCameras:false,actionThermostat:false,objection:'',soldFromTurnover:false,turnoverFrom:'',timestamp:Date.now(),timeOfDay:new Date().getHours()};
+        const newCallPayload={customerName:'',jobNumber:'',customerPhone:'',reviewCompleted:false,reviewWithPic:false,restorationLead:false,turnoverAttempted:false,turnoverAccepted:false,threeDoorKnocks:false,stNotes:false,stickers:false,company:'action',membershipPlanSold:false,upsellCompleted:false,upsellAmount:0,jobComplete:false,jobSold:false,amountSold:0,amountCollected:0,moneyOwed:0,paymentMethod:'',hasParts:false,hasLabor:false,isNewCustomer:false,existingCustomer:false,couldntFinance:false,financeLostAmount:0,leftEstimate:false,estimateAmount:0,jobCancelled:false,cancelReason:'',tradePlumbing:false,tradeHVAC:false,tradeElectrical:false,tradeCameras:false,actionThermostat:false,objection:'',soldFromTurnover:false,turnoverFrom:'',timestamp:Date.now(),timeOfDay:new Date().getHours()};
         const doAddCall=()=>{ db.ref(`callLogs/${key}`).push().set({...newCallPayload,timestamp:Date.now(),timeOfDay:new Date().getHours()}).then(ref=>{ setTimeout(()=>{ const cards=document.querySelectorAll('.call-card'); if(cards.length) cards[cards.length-1].scrollIntoView({behavior:'smooth',block:'start'}); },200); }); };
         document.getElementById('addCallBtn').onclick=doAddCall;
         document.getElementById('addCallBottom').onclick=doAddCall;

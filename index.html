@@ -578,6 +578,7 @@ html.light .nav-card.mgr-card .nav-card-title{color:var(--muted);}
 .rev-split .rs-a{color:#f87171;border-color:rgba(220,38,38,.4)}
 .rev-split .rs-p{color:#93b4ff;border-color:rgba(29,78,216,.5)}
 </style>
+<link rel="stylesheet" href="ui.css">
 </head>
 <body>
 <div id="themeToggleWrap" style="position:fixed;top:12px;right:16px;z-index:9999;display:flex;flex-direction:row-reverse;align-items:center;gap:10px;">
@@ -663,6 +664,33 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
             <div class="stat-label">Close Rate This Week</div>
             <div id="wtdClose" class="stat-num">&mdash;</div>
             <div id="wtdCloseMeta" class="stat-meta">Team, sold &divide; calls</div>
+        </div>
+    </div>
+
+    <!-- FINANCING + EXISTING CUSTOMERS (collapsible — headline stays visible while collapsed) -->
+    <div class="section-divider" id="fcToggle" style="cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;margin-top:-10px">
+        <span class="sdl"><span id="fcArrow" style="display:inline-block;transition:transform .18s;margin-right:8px">&#9656;</span>Financing &amp; Customers <span id="fcHeadline" style="color:var(--red);margin-left:8px"></span></span>
+    </div>
+    <div class="stat-strip" id="fcStrip" style="display:none">
+        <div class="stat-block">
+            <div class="stat-label">Lost to Financing — Month</div>
+            <div id="fcLostMonth" class="stat-num">$0</div>
+            <div id="fcLostMonthMeta" class="stat-meta">0 jobs</div>
+        </div>
+        <div class="stat-block">
+            <div class="stat-label">Lost to Financing — Week</div>
+            <div id="fcLostWeek" class="stat-num">$0</div>
+            <div id="fcLostWeekMeta" class="stat-meta">Since Monday</div>
+        </div>
+        <div class="stat-block">
+            <div class="stat-label">Existing Customers — Month</div>
+            <div id="fcExCalls" class="stat-num">0</div>
+            <div id="fcExMeta" class="stat-meta">0% of calls</div>
+        </div>
+        <div class="stat-block">
+            <div class="stat-label">Close — Existing vs New</div>
+            <div id="fcExClose" class="stat-num">&mdash;</div>
+            <div id="fcExCloseMeta" class="stat-meta">New: 0%</div>
         </div>
     </div>
 
@@ -1254,6 +1282,78 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
     if (tog) tog.onclick = function(){
         const s = document.getElementById('ywStrip');
         const a = document.getElementById('ywArrow');
+        const open = s.style.display !== 'none';
+        s.style.display = open ? 'none' : 'grid';
+        if (a) a.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+    };
+})();
+</script>
+<script>
+/* ══════════════════════════════════════════════════════════════
+   FINANCING & CUSTOMERS — dashboard strip (team, this location)
+   Reads couldntFinance / financeLostAmount / existingCustomer off
+   the call log. Same pattern as the Yesterday & This Week strip:
+   wraps renderStats / renderNav, starts collapsed, but the month's
+   lost-to-financing total shows in the divider line itself so the
+   number is visible without opening it.
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    const pad  = n => String(n).padStart(2, '0');
+    const dkOf = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const set  = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    const money = x => '$' + Math.round(x).toLocaleString();
+    const jobs = n => n + ' job' + (n === 1 ? '' : 's');
+    const pc = (n, d) => d ? Math.round(n / d * 100) : 0;
+
+    function tally(roster, L, from, to){
+        const t = { lost:0, n:0, calls:0, exCalls:0, exSold:0, newCalls:0, newSold:0 };
+        const end = dkOf(to);
+        for (let d = new Date(from); dkOf(d) <= end; d.setDate(d.getDate() + 1)) {
+            const k = dkOf(d);
+            roster.forEach(p => {
+                const day = L[`${p.id}_${k}`];
+                if (day) Object.values(day).forEach(c => {
+                    t.calls++;
+                    if (c.existingCustomer){ t.exCalls++; if (c.jobSold) t.exSold++; }
+                    else { t.newCalls++; if (c.jobSold) t.newSold++; }
+                    if (c.couldntFinance){ t.n++; t.lost += parseFloat(c.financeLostAmount) || 0; }
+                });
+            });
+        }
+        return t;
+    }
+
+    window.renderFinanceCustomers = function(){
+        try {
+            const roster = (typeof allPeople !== 'undefined' && allPeople.length) ? allPeople
+                         : (typeof people !== 'undefined' ? people : []);
+            const L = (typeof logs !== 'undefined' && logs) ? logs : {};
+            const now = new Date();
+            const m = tally(roster, L, new Date(now.getFullYear(), now.getMonth(), 1), now);
+            const dow = now.getDay();
+            const mon = new Date(now); mon.setDate(now.getDate() - dow + (dow === 0 ? -6 : 1));
+            const w = tally(roster, L, mon, now);
+
+            set('fcHeadline', m.n ? '· ' + money(m.lost) + ' lost this month' : '');
+            set('fcLostMonth', money(m.lost));
+            set('fcLostMonthMeta', jobs(m.n) + " couldn't finance");
+            set('fcLostWeek', money(w.lost));
+            set('fcLostWeekMeta', jobs(w.n) + ' since Mon ' + (mon.getMonth()+1) + '/' + mon.getDate());
+            set('fcExCalls', m.exCalls);
+            set('fcExMeta', pc(m.exCalls, m.calls) + '% of ' + m.calls + ' calls');
+            set('fcExClose', m.exCalls ? pc(m.exSold, m.exCalls) + '%' : '—');
+            set('fcExCloseMeta', 'New: ' + pc(m.newSold, m.newCalls) + '% (' + m.newSold + ' / ' + m.newCalls + ')');
+        } catch (e) { /* strip is best-effort */ }
+    };
+
+    const _rs3 = renderStats; renderStats = function(){ _rs3(); renderFinanceCustomers(); };
+    const _rn3 = renderNav;   renderNav   = function(){ _rn3(); renderFinanceCustomers(); };
+    renderFinanceCustomers();
+
+    const tog = document.getElementById('fcToggle');
+    if (tog) tog.onclick = function(){
+        const s = document.getElementById('fcStrip');
+        const a = document.getElementById('fcArrow');
         const open = s.style.display !== 'none';
         s.style.display = open ? 'none' : 'grid';
         if (a) a.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';

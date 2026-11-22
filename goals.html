@@ -115,6 +115,7 @@ html.light input::placeholder,html.light textarea::placeholder{color:var(--faint
         .pr-date{font-family:'Oswald',sans-serif;font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-top:8px;padding-top:6px;border-top:1px solid var(--wire)}
         .pr-crown{position:absolute;top:10px;right:12px;font-size:18px;opacity:.25}
     </style>
+<link rel="stylesheet" href="ui.css">
 </head>
 <body>
 <div id="themeToggleWrap" style="position:fixed;top:12px;right:16px;z-index:9999;display:flex;flex-direction:row-reverse;align-items:center;gap:10px;"><img src="actionsite-logo.png" alt="Action Plumbing" class="hdr-logo" style="height:30px;width:auto;display:block"><style>@media(max-width:520px){.hdr-logo{height:22px!important}}</style>
@@ -180,6 +181,13 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
             <div class="stat-block"><div class="stat-lbl">Restoration Leads</div><div id="restorationLeads" class="stat-num">0</div><div class="stat-meta">This month</div></div>
             <div class="stat-block"><div class="stat-lbl">Cancellations</div><div id="cancellations" class="stat-num">0</div><div id="cancellationRate" class="stat-meta">0% of calls</div></div>
             <div class="stat-block"><div class="stat-lbl"><i class="ti ti-temperature" style="color:var(--red)"></i> Action Stats</div><div id="actionThermostats" class="stat-num">0</div><div class="stat-meta">Thermostats sold</div></div>
+        </div>
+        <div class="sec-label" style="margin-top:20px">Financing &amp; Customers — This Month</div>
+        <div class="g4 stat-mosaic">
+            <div class="stat-block"><div class="stat-lbl"><i class="ti ti-building-bank" style="color:var(--red)"></i> Lost to Financing</div><div id="myFinLost" class="stat-num" style="color:var(--red)">$0</div><div id="myFinLostMeta" class="stat-meta">0 jobs</div></div>
+            <div class="stat-block"><div class="stat-lbl">Lost Year to Date</div><div id="myFinLostYr" class="stat-num">$0</div><div id="myFinLostYrMeta" class="stat-meta">0 jobs</div></div>
+            <div class="stat-block"><div class="stat-lbl">Existing Customers</div><div id="myExCalls" class="stat-num">0</div><div id="myExMeta" class="stat-meta">0% of calls</div></div>
+            <div class="stat-block"><div class="stat-lbl">Close — Existing vs New</div><div id="myExClose" class="stat-num">0%</div><div id="myExCloseMeta" class="stat-meta">New: 0%</div></div>
         </div>
         <div class="sec-label" style="margin-top:20px">Performance Last Week</div>
         <div id="lastWeekDateRange" style="font-size:12px;color:var(--muted);font-family:'Oswald',sans-serif;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px"></div>
@@ -1496,5 +1504,46 @@ if ('serviceWorker' in navigator) {
 .split-total span:last-child{font-size:26px;color:var(--text)}
 </style>
 
+<script>
+/* ══════════════════════════════════════════════════════════════
+   FINANCING & CUSTOMERS — My Report
+   The signed-in rep's own numbers from two call-card fields:
+   couldntFinance + financeLostAmount, and existingCustomer.
+   Same layer pattern as the Sales Coach / KPI cards: wraps
+   renderAll, reads the page's selected / getCalls / currentDate.
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    var money = function(x){ return '$' + Math.round(x).toLocaleString(); };
+    var set = function(id, v){ var el = document.getElementById(id); if (el) el.textContent = v; };
+    var jobs = function(n){ return n + ' job' + (n === 1 ? '' : 's'); };
+    var pc = function(n,d){ return d ? (n / d * 100).toFixed(1) : '0'; };
+    function tally(dates){
+        var t = { lost:0, n:0, noAmt:0, calls:0, exCalls:0, exSold:0, newCalls:0, newSold:0 };
+        dates.forEach(function(d){ getCalls(selected, d).forEach(function(c){
+            t.calls++;
+            if (c.existingCustomer){ t.exCalls++; if (c.jobSold) t.exSold++; }
+            else { t.newCalls++; if (c.jobSold) t.newSold++; }
+            if (c.couldntFinance){ var a = parseFloat(c.financeLostAmount) || 0; t.n++; t.lost += a; if (!a) t.noAmt++; }
+        }); });
+        return t;
+    }
+    window.renderMyFinance = function(){
+        try {
+            var m = tally(getMDates(currentDate)), y = tally(getYDates(currentDate.getFullYear()));
+            set('myFinLost', money(m.lost));
+            set('myFinLostMeta', jobs(m.n) + (m.noAmt ? ' · ' + m.noAmt + ' missing an amount' : ''));
+            set('myFinLostYr', money(y.lost));
+            set('myFinLostYrMeta', jobs(y.n));
+            set('myExCalls', m.exCalls);
+            set('myExMeta', pc(m.exCalls, m.calls) + '% of calls · ' + m.exSold + ' sold');
+            set('myExClose', pc(m.exSold, m.exCalls) + '%');
+            set('myExCloseMeta', 'New: ' + pc(m.newSold, m.newCalls) + '% (' + m.newSold + ' / ' + m.newCalls + ')');
+        } catch(e){ /* best-effort */ }
+    };
+    var _ra = renderAll;
+    renderAll = function(){ _ra(); renderMyFinance(); };
+    renderMyFinance();
+})();
+</script>
 </body>
 </html>

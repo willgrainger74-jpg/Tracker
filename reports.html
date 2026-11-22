@@ -63,6 +63,7 @@ html.light input::placeholder,html.light textarea::placeholder{color:var(--faint
         .lb-name{font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text)}
         .lb-rev{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:1px;color:var(--text)}
     </style>
+<link rel="stylesheet" href="ui.css">
 </head>
 <body>
 <div id="themeToggleWrap" style="position:fixed;top:12px;right:16px;z-index:9999;display:flex;flex-direction:row-reverse;align-items:center;gap:10px;"><img src="actionsite-logo.png" alt="Action Plumbing" class="hdr-logo" style="height:30px;width:auto;display:block"><style>@media(max-width:520px){.hdr-logo{height:22px!important}}</style>
@@ -109,6 +110,23 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
             <div class="stat-block"><div class="stat-lbl">Estimates</div><div id="estimatesLeft" class="stat-num">0</div><div id="estimateValue" class="stat-meta">$0 potential</div></div>
             <div class="stat-block"><div class="stat-lbl">Door Knocks</div><div id="doorKnocks" class="stat-num">0</div><div id="doorKnocksRate" class="stat-meta">0% conv</div></div>
             <div class="stat-block"><div class="stat-lbl">Total Calls</div><div id="totalCalls" class="stat-num">0</div><div class="stat-meta">This month</div></div>
+        </div>
+        <!-- Lost to financing -->
+        <div class="sec-label">Lost Revenue — Couldn't Finance</div>
+        <div class="g3 stat-mosaic fin-lost-row" style="margin-bottom:10px">
+            <div class="stat-block fin-lost-block"><div class="stat-lbl"><i class="ti ti-building-bank" style="color:var(--red)"></i> Lost This Month</div><div id="finLostMonth" class="stat-num">$0</div><div id="finLostMonthMeta" class="stat-meta">0 jobs</div></div>
+            <div class="stat-block"><div class="stat-lbl">Lost Year to Date</div><div id="finLostYear" class="stat-num">$0</div><div id="finLostYearMeta" class="stat-meta">0 jobs</div></div>
+            <div class="stat-block"><div class="stat-lbl">Month If Financed</div><div id="finLostWouldBe" class="stat-num">$0</div><div id="finLostWouldBeMeta" class="stat-meta">Revenue + lost</div></div>
+        </div>
+        <div class="card-inner" style="margin-bottom:16px">
+            <div class="stat-lbl" style="margin-bottom:10px">Lost to Financing by Rep</div>
+            <div id="finLostByRep"></div>
+        </div>
+        <!-- Existing customers -->
+        <div class="sec-label">Existing vs New Customers</div>
+        <div class="g2 stat-mosaic" style="margin-bottom:16px">
+            <div class="stat-block"><div class="stat-lbl">Existing Customers</div><div id="exCustCalls" class="stat-num">0</div><div id="exCustMeta" class="stat-meta">0% of calls</div></div>
+            <div class="stat-block"><div class="stat-lbl">Close Rate — Existing vs New</div><div id="exCustClose" class="stat-num">0%</div><div id="exCustCloseMeta" class="stat-meta">New: 0%</div></div>
         </div>
         <!-- Turnovers -->
         <div class="sec-label">Rep Scorecard — vs Targets</div>
@@ -468,6 +486,82 @@ if ('serviceWorker' in navigator) {
     renderAll = function(){ _ra(); renderTeamSplit(); };
 })();
 </script>
+<script>
+/* ══════════════════════════════════════════════════════════════
+   LOST TO FINANCING + EXISTING CUSTOMERS — Team Report
+   Reads two call-card fields added Nov 2026:
+     couldntFinance (bool) + financeLostAmount ($)  — calls.html
+     existingCustomer (bool)                         — calls.html
+   Layer pattern: wraps renderAll, reuses getCalls / allPeople /
+   currentDate / getMDates / getYDates. A call ticked "couldn't
+   finance" with no amount typed still counts as a job and is
+   called out so the number isn't silently understated.
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    var money = function(x){ return '$' + Math.round(x).toLocaleString(); };
+    var esc = function(t){ return String(t).replace(/[&<>"']/g, function(ch){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]; }); };
+    var set = function(id, v){ var el = document.getElementById(id); if (el) el.textContent = v; };
+    var jobs = function(n){ return n + ' job' + (n === 1 ? '' : 's'); };
+
+    function tally(dates){
+        var t = { lost:0, n:0, noAmt:0, rev:0, calls:0, exCalls:0, exSold:0, newCalls:0, newSold:0, by:{} };
+        allPeople.forEach(function(p){
+            dates.forEach(function(d){
+                getCalls(p.id, d).forEach(function(c){
+                    t.calls++;
+                    if (c.jobSold) t.rev += parseFloat(c.amountSold) || 0;
+                    if (c.existingCustomer){ t.exCalls++; if (c.jobSold) t.exSold++; }
+                    else { t.newCalls++; if (c.jobSold) t.newSold++; }
+                    if (c.couldntFinance){
+                        var amt = parseFloat(c.financeLostAmount) || 0;
+                        t.n++; t.lost += amt; if (!amt) t.noAmt++;
+                        var b = t.by[p.id] || (t.by[p.id] = { name:p.name, n:0, lost:0 });
+                        b.n++; b.lost += amt;
+                    }
+                });
+            });
+        });
+        return t;
+    }
+
+    window.renderFinanceLost = function(){
+        try {
+            var m = tally(getMDates(currentDate)), y = tally(getYDates(currentDate.getFullYear()));
+            set('finLostMonth', money(m.lost));
+            set('finLostMonthMeta', jobs(m.n) + (m.noAmt ? ' · ' + m.noAmt + ' missing an amount' : ''));
+            set('finLostYear', money(y.lost));
+            set('finLostYearMeta', jobs(y.n) + (y.noAmt ? ' · ' + y.noAmt + ' missing an amount' : ''));
+            set('finLostWouldBe', money(m.rev + m.lost));
+            set('finLostWouldBeMeta', m.rev > 0 && m.lost > 0 ? '+' + (m.lost / m.rev * 100).toFixed(1) + '% over actual' : 'Revenue + lost');
+
+            var rows = Object.keys(m.by).map(function(k){ return m.by[k]; }).sort(function(a,b){ return b.lost - a.lost || b.n - a.n; });
+            var box = document.getElementById('finLostByRep');
+            if (box) box.innerHTML = rows.length ? rows.map(function(r){
+                return '<div class="fin-rep-row"><span class="fin-rep-name">' + esc(r.name) + '</span>' +
+                       '<span class="fin-rep-meta">' + jobs(r.n) + '</span>' +
+                       '<span class="fin-rep-amt">' + money(r.lost) + '</span></div>';
+            }).join('') : '<div style="font-size:12px;color:var(--muted);padding:8px">Nothing lost to financing this month</div>';
+
+            var pc = function(n,d){ return d ? (n / d * 100).toFixed(1) : '0'; };
+            set('exCustCalls', m.exCalls);
+            set('exCustMeta', pc(m.exCalls, m.calls) + '% of calls · ' + m.exSold + ' sold');
+            set('exCustClose', pc(m.exSold, m.exCalls) + '%');
+            set('exCustCloseMeta', 'New: ' + pc(m.newSold, m.newCalls) + '% (' + m.newSold + ' / ' + m.newCalls + ')');
+        } catch(e){ /* best-effort */ }
+    };
+    var _ra = renderAll;
+    renderAll = function(){ _ra(); renderFinanceLost(); };
+    renderFinanceLost();   // in case the data landed before this layer loaded
+})();
+</script>
+<style>
+.fin-lost-block::before{height:3px!important}
+.fin-lost-block .stat-num{color:var(--red)}
+.fin-rep-row{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--s3);border:1px solid var(--wire);margin-bottom:3px}
+.fin-rep-name{flex:1;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.fin-rep-meta{font-size:12px;color:var(--muted);white-space:nowrap}
+.fin-rep-amt{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;color:var(--red);min-width:90px;text-align:right}
+</style>
 <style>
 #teamSplit .ts-sec{border:1px solid var(--wire);margin-top:10px}
 #teamSplit .ts-head{width:100%;display:flex;align-items:center;gap:12px;background:var(--s2);border:none;

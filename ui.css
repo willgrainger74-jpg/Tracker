@@ -1,0 +1,241 @@
+/* ═══════════════════════════════════════════════════════════════════
+   ACTION GROUP TRACKER — UI REFREShtml:not(.ui-nav-only) LAYER  (ui.css, Nov 2026)
+
+   One stylesheet, linked last in the <head> of every page. It restyles
+   the shared building blocks (cards, stat tiles, buttons, inputs,
+   check rows, calendar, bottom tab bar) without touching any page's
+   markup or script. Every color comes from the page's own variables
+   (--red, --s1, --bg, --wire…), so the four brand palettes and
+   light/dark mode keep working — Colorado stays blue, Idaho stays navy.
+
+   To switch the whole refresh OFF: delete the ui.css <link> line from
+   a page (or empty this file). Nothing else depends on it.
+
+   training.html has its own variable system, so it carries
+   class="ui-nav-only" on <html> and only picks up the tab-bar rules.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── tokens ── */
+html:not(.ui-nav-only){
+  --ui-r:16px; --ui-r2:12px; --ui-r3:10px;
+  --ui-soft:color-mix(in srgb,var(--red) 13%,transparent);
+  --ui-line:color-mix(in srgb,var(--red) 55%,transparent);
+  --ui-glow:color-mix(in srgb,var(--red) 45%,transparent);
+  --ui-amb:color-mix(in srgb,var(--red) 17%,transparent);
+  --ui-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 22px 44px -28px rgba(0,0,0,.95);
+}
+html.light:not(.ui-nav-only){
+  --ui-amb:color-mix(in srgb,var(--red) 9%,transparent);
+  --ui-shadow:0 1px 2px rgba(0,0,0,.05),0 18px 36px -24px rgba(0,0,0,.28);
+}
+
+/* ── backdrop: scan lines out, soft brand glow in ── */
+html:not(.ui-nav-only) body::after{
+  content:'';display:block;position:fixed;inset:0;pointer-events:none;z-index:-1;
+  background:
+    radial-gradient(70vw 460px at 105% -6%,var(--ui-amb),transparent 68%),
+    radial-gradient(55vw 380px at -12% 4%,color-mix(in srgb,var(--ui-amb) 55%,transparent),transparent 70%);
+}
+html:not(.ui-nav-only) ::selection{background:var(--ui-line);color:#fff}
+html:not(.ui-nav-only) *{scrollbar-width:thin;scrollbar-color:var(--wire2) transparent}
+html:not(.ui-nav-only) body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+
+/* ── surfaces ── */
+html:not(.ui-nav-only) .card{
+  border-radius:var(--ui-r);box-shadow:var(--ui-shadow);
+  background:linear-gradient(180deg,var(--s1),color-mix(in srgb,var(--s1) 72%,var(--bg)));
+}
+html:not(.ui-nav-only) .card-inner,html:not(.ui-nav-only) .lb-card,html:not(.ui-nav-only) .call-card,html:not(.ui-nav-only) .subsection,html:not(.ui-nav-only) .item-card,html:not(.ui-nav-only) .sess-card,
+html:not(.ui-nav-only) .money-owed-display,html:not(.ui-nav-only) .add-form,html:not(.ui-nav-only) .select-prompt,html:not(.ui-nav-only) .door-card,html:not(.ui-nav-only) .followup-card,
+html:not(.ui-nav-only) .cat-card,html:not(.ui-nav-only) .standings-card,html:not(.ui-nav-only) .tier-card,html:not(.ui-nav-only) .attn-card,html:not(.ui-nav-only) .owed-row,html:not(.ui-nav-only) .wl-entry,
+html:not(.ui-nav-only) .pr-block,html:not(.ui-nav-only) .streak-block,html:not(.ui-nav-only) .race-cat,html:not(.ui-nav-only) .wwi-card,html:not(.ui-nav-only) .team-setup-block,html:not(.ui-nav-only) .day-block,
+html:not(.ui-nav-only) .week-summary,html:not(.ui-nav-only) .log-form,html:not(.ui-nav-only) .pin-box,html:not(.ui-nav-only) .person-btn,html:not(.ui-nav-only) .cat,html:not(.ui-nav-only) .vid,html:not(.ui-nav-only) .modal-box,
+html:not(.ui-nav-only) .photo-drop,html:not(.ui-nav-only) .kpi-note,html:not(.ui-nav-only) .gam-badge,html:not(.ui-nav-only) .gam-lv,html:not(.ui-nav-only) .gam-stat,html:not(.ui-nav-only) .mini-stat,
+html:not(.ui-nav-only) #teamSplit .ts-sec,html:not(.ui-nav-only) .fin-rep-row{border-radius:var(--ui-r2)}
+html:not(.ui-nav-only) .cat,html:not(.ui-nav-only) .vid,html:not(.ui-nav-only) .modal-box,html:not(.ui-nav-only) #teamSplit .ts-sec{overflow:hidden}
+html:not(.ui-nav-only) .call-card{box-shadow:0 14px 30px -24px rgba(0,0,0,.9)}
+
+/* rows and bars the pages build with inline styles */
+html:not(.ui-nav-only) .card div[style*="border:1px solid var(--wire)"]{border-radius:var(--ui-r3)}
+html:not(.ui-nav-only) .card div[style*="gap:2px;background:var(--wire)"]{border-radius:var(--ui-r2);overflow:hidden}
+html:not(.ui-nav-only) .bar-track,html:not(.ui-nav-only) .bar-fill,html:not(.ui-nav-only) .tsm-bar,html:not(.ui-nav-only) .tsm-fill,
+html:not(.ui-nav-only) .card div[style*="height:4px"],html:not(.ui-nav-only) .card div[style*="height:5px"],html:not(.ui-nav-only) .card div[style*="height:6px"]{border-radius:99px}
+html:not(.ui-nav-only) .bar-track,html:not(.ui-nav-only) .card div[style*="height:4px;width:100%"],html:not(.ui-nav-only) .card div[style*="height:5px;width:100%"],html:not(.ui-nav-only) .card div[style*="height:6px;width:100%"]{overflow:hidden}
+
+/* ── stat tiles ── */
+html:not(.ui-nav-only) .stat-mosaic,html:not(.ui-nav-only) .nav-grid,
+html:not(.ui-nav-only) .g2:has(> .stat-block),html:not(.ui-nav-only) .g3:has(> .stat-block),html:not(.ui-nav-only) .g4:has(> .stat-block){
+  border-radius:14px;overflow:hidden;border:1px solid var(--wire);
+}
+html:not(.ui-nav-only) .stat-block::before{background:linear-gradient(90deg,var(--red),transparent 82%)}
+html:not(.ui-nav-only) .stat-num,html:not(.ui-nav-only) .stat-num-md,html:not(.ui-nav-only) .lb-rev,html:not(.ui-nav-only) .money-owed-val,html:not(.ui-nav-only) .cal-day-num,html:not(.ui-nav-only) .fin-rep-amt{font-variant-numeric:tabular-nums}
+
+/* dashboard hero tiles */
+html:not(.ui-nav-only) .stat-strip .stat-block{
+  border-radius:var(--ui-r);border:1px solid var(--wire);border-top:1px solid var(--wire2);
+  background:linear-gradient(155deg,var(--ui-soft),transparent 46%),var(--s1);box-shadow:var(--ui-shadow);
+  transition:transform .2s ease,border-color .2s ease;
+}
+html:not(.ui-nav-only) .stat-strip .stat-block:hover{transform:translateY(-2px);border-color:var(--ui-line)}
+html:not(.ui-nav-only) .stat-strip .stat-block::after{width:150px;height:150px;right:-50px;bottom:-60px;border-radius:50%;transform:none;opacity:.22;filter:blur(34px)}
+html:not(.ui-nav-only) .stat-strip .stat-num{font-size:clamp(34px,9.5vw,64px);letter-spacing:1px}
+
+/* dashboard tiles + roster */
+html:not(.ui-nav-only) .nav-card{transition:background .2s ease}
+html:not(.ui-nav-only) .nav-card-icon{width:46px;height:46px;display:grid;place-items:center;border-radius:13px;font-size:23px;
+  background:var(--ui-soft);border:1px solid color-mix(in srgb,var(--red) 26%,transparent)}
+html:not(.ui-nav-only) .chip{border-radius:999px;padding:3px 10px}
+html:not(.ui-nav-only) .person-btn.selected{box-shadow:0 0 0 1px var(--ui-line),0 14px 28px -18px var(--ui-glow)}
+
+/* ── titles ── */
+html:not(.ui-nav-only) .pg-title em,html:not(.ui-nav-only) .page-title em,html:not(.ui-nav-only) .hero-title em{
+  background:linear-gradient(180deg,color-mix(in srgb,var(--red) 72%,#fff),var(--red) 62%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
+}
+html:not(.ui-nav-only) .sec-label::before{width:18px;height:3px;border-radius:3px}
+
+/* ── buttons ── */
+html:not(.ui-nav-only) .btn,html:not(.ui-nav-only) .back-btn,html:not(.ui-nav-only) .cal-nav-btn,html:not(.ui-nav-only) .del-call,html:not(.ui-nav-only) .filter-btn,html:not(.ui-nav-only) .hbtn,html:not(.ui-nav-only) .wl-week-btn,
+html:not(.ui-nav-only) .btn-print,html:not(.ui-nav-only) .change-btn,html:not(.ui-nav-only) .add-tm-btn,html:not(.ui-nav-only) .icon-btn,html:not(.ui-nav-only) .trade-btn{border-radius:var(--ui-r3)}
+html:not(.ui-nav-only) .btn-red,html:not(.ui-nav-only) .btn-primary,html:not(.ui-nav-only) .hbtn-red{
+  background:linear-gradient(180deg,color-mix(in srgb,var(--red) 86%,#fff),var(--red));
+  box-shadow:0 10px 22px -12px var(--ui-glow),0 1px 0 rgba(255,255,255,.2) inset;
+}
+html:not(.ui-nav-only) .btn-red:hover,html:not(.ui-nav-only) .btn-primary:hover,html:not(.ui-nav-only) .hbtn-red:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--red) 86%,#fff),var(--red));filter:brightness(1.1);transform:translateY(-1px)}
+html:not(.ui-nav-only) .btn-red:active,html:not(.ui-nav-only) .btn-primary:active{transform:scale(.97)}
+html:not(.ui-nav-only) .back-btn{background:color-mix(in srgb,var(--s2) 70%,transparent)}
+html:not(.ui-nav-only) .add-call-bottom{border-radius:var(--ui-r2)}
+html:not(.ui-nav-only) .company-seg{border-radius:var(--ui-r3);overflow:hidden}
+html:not(.ui-nav-only) .fab{border-radius:999px;right:16px;bottom:calc(90px + env(safe-area-inset-bottom));
+  box-shadow:0 14px 30px -10px var(--ui-glow),0 1px 0 rgba(255,255,255,.2) inset}
+
+/* top-right controls */
+html:not(.ui-nav-only) #themeToggleBtn,html:not(.ui-nav-only) #logoutBtn,html:not(.ui-nav-only) #ap-loc-chip{border-radius:999px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+html:not(.ui-nav-only) #ap-loc-chip{background:color-mix(in srgb,var(--s1) 80%,transparent)}
+
+/* ── forms ── */
+html:not(.ui-nav-only) input[type=text],html:not(.ui-nav-only) input[type=number],html:not(.ui-nav-only) input[type=tel],html:not(.ui-nav-only) input[type=password],html:not(.ui-nav-only) input[type=date],
+html:not(.ui-nav-only) input[type=search],html:not(.ui-nav-only) input[type=email],html:not(.ui-nav-only) input[type=url],html:not(.ui-nav-only) textarea,html:not(.ui-nav-only) select{border-radius:var(--ui-r3);transition:border-color .15s,box-shadow .15s}
+html:not(.ui-nav-only) input:focus,html:not(.ui-nav-only) textarea:focus,html:not(.ui-nav-only) select:focus{box-shadow:0 0 0 3px var(--ui-soft)}
+
+html:not(.ui-nav-only) .check-row{border-radius:var(--ui-r3);padding:12px 14px;min-height:46px;transition:border-color .15s,background .15s;-webkit-tap-highlight-color:transparent}
+html:not(.ui-nav-only) .check-row:has(input:checked){border-color:var(--ui-line);background:var(--ui-soft)}
+html:not(.ui-nav-only) .check-row:has(input:disabled){opacity:.5}
+html:not(.ui-nav-only) .check-row input[type=checkbox]{
+  -webkit-appearance:none;appearance:none;width:20px;height:20px;margin:0;flex:none;border-radius:6px;
+  border:1.5px solid var(--wire2);background:var(--s1);display:grid;place-content:center;cursor:pointer;
+  transition:background .15s,border-color .15s;
+}
+html:not(.ui-nav-only) .check-row input[type=checkbox]::after{content:'';width:10px;height:5px;margin-top:-2px;
+  border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) scale(0);transition:transform .14s ease}
+html:not(.ui-nav-only) .check-row input[type=checkbox]:checked{background:var(--red);border-color:var(--red)}
+html:not(.ui-nav-only) .check-row input[type=checkbox]:checked::after{transform:rotate(-45deg) scale(1)}
+
+/* ── week calendar ── */
+html:not(.ui-nav-only) .cal-day{border-radius:var(--ui-r2)}
+html:not(.ui-nav-only) .cal-day.selected{box-shadow:0 0 0 1px var(--red),0 14px 26px -16px var(--ui-glow)}
+
+/* ── sign-in card ── */
+html:not(.ui-nav-only) #ap-login-overlay > div{border-radius:22px;box-shadow:0 40px 80px -40px rgba(0,0,0,.9),0 0 0 1px var(--wire)}
+html:not(.ui-nav-only) #ap-login-overlay button{border-radius:var(--ui-r3)}
+
+/* ── entrance ── */
+@keyframes uiRise{from{opacity:0;transform:translateY(10px)}}
+html:not(.ui-nav-only) .page > .card,html:not(.ui-nav-only) .stat-strip .stat-block{animation:uiRise .45s cubic-bezier(.2,.7,.2,1) backwards}
+html:not(.ui-nav-only) .page > .card:nth-of-type(2),html:not(.ui-nav-only) .stat-strip .stat-block:nth-child(2){animation-delay:.05s}
+html:not(.ui-nav-only) .page > .card:nth-of-type(3),html:not(.ui-nav-only) .stat-strip .stat-block:nth-child(3){animation-delay:.1s}
+html:not(.ui-nav-only) .page > .card:nth-of-type(n+4),html:not(.ui-nav-only) .stat-strip .stat-block:nth-child(4){animation-delay:.15s}
+@media (prefers-reduced-motion:reduce){html:not(.ui-nav-only) *{animation:none!important;transition:none!important}}
+
+/* ── phones ── */
+@media (max-width:640px){
+  /* the fixed top-right controls used to sit on top of the page title */
+  html:not(.ui-nav-only) .pg-header,html:not(.ui-nav-only) .page-header{padding-top:40px}
+  html:not(.ui-nav-only) .hero{padding-top:44px}
+  html:not(.ui-nav-only) .page{padding-left:14px;padding-right:14px}
+  html:not(.ui-nav-only) .card{padding:18px 16px}
+  html:not(.ui-nav-only) .stat-strip{gap:10px}
+  html:not(.ui-nav-only) .stat-strip .stat-block{padding:18px 16px}
+  /* 16px inputs stop iPhones zooming the page on every tap into a field */
+  html:not(.ui-nav-only) input[type=text],html:not(.ui-nav-only) input[type=number],html:not(.ui-nav-only) input[type=tel],html:not(.ui-nav-only) input[type=password],html:not(.ui-nav-only) input[type=search],html:not(.ui-nav-only) textarea,html:not(.ui-nav-only) select{font-size:16px}
+  html:not(.ui-nav-only) .cal-grid,html:not(.ui-nav-only) .cal-days-header{gap:3px}
+  html:not(.ui-nav-only) .cal-day{padding:10px 4px}
+  html:not(.ui-nav-only) .cal-day-stat{font-size:10.5px;letter-spacing:0}
+}
+
+@media print{
+  html:not(.ui-nav-only) body::after{display:none!important}
+  html:not(.ui-nav-only) .card{box-shadow:none;animation:none;background:#fff}
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BOTTOM TAB BAR — floating glass pill (applies on every page,
+   including training.html)
+   ═══════════════════════════════════════════════════════════════════ */
+html body{padding-bottom:calc(92px + env(safe-area-inset-bottom))!important}
+html body #abn{
+  left:10px;right:10px;bottom:calc(8px + env(safe-area-inset-bottom));padding:6px;
+  border-radius:22px;border:1px solid var(--wire2,rgba(255,255,255,.14));
+  background:color-mix(in srgb,var(--s1,#141414) 76%,transparent);
+  backdrop-filter:blur(22px) saturate(1.5);-webkit-backdrop-filter:blur(22px) saturate(1.5);
+  box-shadow:0 20px 44px -14px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.06) inset;
+}
+html.light body #abn{background:rgba(255,255,255,.8);border-color:rgba(0,0,0,.1);box-shadow:0 16px 36px -16px rgba(0,0,0,.35)}
+html body .abn-tab{border-radius:16px;padding:8px 2px 7px;transition:color .15s,background .15s}
+html body .abn-tab.on{color:var(--red,#dc2626);background:color-mix(in srgb,var(--red,#dc2626) 15%,transparent)}
+html body .abn-tab.on::before{display:none}
+html body #abn-scrim.open{backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+html body #abn-sheet.open{
+  border-top:none;border-radius:24px 24px 0 0;background:var(--s1,#141414);
+  padding-top:26px;box-shadow:0 -24px 60px -20px rgba(0,0,0,.8);
+}
+html body #abn-sheet.open::before{content:'';position:absolute;top:10px;left:50%;width:38px;height:4px;margin-left:-19px;border-radius:4px;background:var(--wire2,rgba(255,255,255,.2))}
+html.light body #abn-sheet.open{background:#fff}
+html body .abn-item{border-radius:14px}
+html body .abn-item .i{color:var(--red,#dc2626)}
+@media (pointer:coarse) and (orientation:landscape){html body{padding-bottom:0!important}}
+@media print{html body #abn{display:none!important}html body{padding-bottom:0!important}}
+/* desktop: the tab bar becomes a centered dock instead of a full-width strip */
+@media (min-width:900px){html body #abn{left:50%;right:auto;width:560px;transform:translateX(-50%)}}
+/* days with calls used a hardcoded dark red that turned muddy in light mode and on the blue/navy brands */
+html:not(.ui-nav-only) .cal-day.has-calls{background:var(--ui-soft)}
+html:not(.ui-nav-only) .cal-day.selected{background:color-mix(in srgb,var(--red) 22%,var(--s2))}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ROUND 2 — leaderboards, manager portal tabs + tables
+   ═══════════════════════════════════════════════════════════════════ */
+/* manager tab strip: square blocks → pill tabs that scroll sideways on phones */
+html:not(.ui-nav-only) .tab-strip{gap:8px;background:none;padding:2px 0 6px}
+html:not(.ui-nav-only) .tab-btn{border-radius:999px;border:1px solid var(--wire);background:color-mix(in srgb,var(--s1) 85%,transparent);padding:9px 15px;font-size:12px}
+html:not(.ui-nav-only) .tab-btn:hover{border-color:var(--wire2)}
+html:not(.ui-nav-only) .tab-btn.active{border-color:transparent;color:#fff;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--red) 86%,#fff),var(--red));
+  box-shadow:0 10px 20px -12px var(--ui-glow),0 1px 0 rgba(255,255,255,.2) inset}
+html:not(.ui-nav-only) .tab-btn.active i{color:#fff!important}
+@media (max-width:760px){
+  html:not(.ui-nav-only) .tab-strip{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+    margin-left:-14px;margin-right:-14px;padding-left:14px;padding-right:14px;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 28px),transparent)}
+  html:not(.ui-nav-only) .tab-strip::-webkit-scrollbar{display:none}
+  html:not(.ui-nav-only) .tab-btn{flex:none}
+}
+
+/* tables */
+html:not(.ui-nav-only) .dark-table{border-collapse:separate;border-spacing:0;border:1px solid var(--wire);border-radius:var(--ui-r2);overflow:hidden;background:var(--s1)}
+html:not(.ui-nav-only) .dark-table th{background:var(--s2);border-bottom:1px solid var(--wire2);padding-top:12px;padding-bottom:12px;font-size:11px}
+html:not(.ui-nav-only) .dark-table tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--s2) 45%,transparent)}
+html:not(.ui-nav-only) .dark-table tr:hover td{background:var(--ui-soft)}
+html:not(.ui-nav-only) .dark-table td{font-variant-numeric:tabular-nums}
+
+/* leaderboard rows */
+html:not(.ui-nav-only) .lb-card{transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+html:not(.ui-nav-only) .lb-card:hover{transform:translateY(-1px);box-shadow:0 16px 30px -22px rgba(0,0,0,.9)}
+html:not(.ui-nav-only) .lb-card.first{background:linear-gradient(90deg,var(--ui-soft),transparent 65%),var(--s2);box-shadow:0 0 0 1px var(--ui-line),0 18px 36px -24px var(--ui-glow)}
+html:not(.ui-nav-only) .lb-rev{letter-spacing:.5px}
+html:not(.ui-nav-only) .pin-box{border-radius:22px;box-shadow:0 40px 80px -40px rgba(0,0,0,.9)}
+html:not(.ui-nav-only) .pin-input{border-radius:var(--ui-r2)}
+/* manager tab panels build their cards with inline styles too */
+html:not(.ui-nav-only) .tab-content div[style*="border:1px solid var(--wire)"],
+html:not(.ui-nav-only) .tab-content div[style*="border:1px solid var(--wire2)"]{border-radius:var(--ui-r2)}
+html:not(.ui-nav-only) .tab-content div[style*="gap:2px;background:var(--wire)"]{border-radius:var(--ui-r3);overflow:hidden}
+html:not(.ui-nav-only) .tab-content div[style*="height:4px"],html:not(.ui-nav-only) .tab-content div[style*="height:5px"],html:not(.ui-nav-only) .tab-content div[style*="height:6px"]{border-radius:99px}

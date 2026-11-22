@@ -249,6 +249,42 @@
             letter-spacing:.14em; text-transform:uppercase; z-index:99999; display:none;
         }
     </style>
+<style>
+/* ── UI REFRESH (Nov 2026) — matches ui.css on the inner pages. The hub keeps
+   its own neutral palette, so these rules live here instead of in ui.css.
+   Delete this block to go back to the square look. ── */
+body::after{z-index:0;background:
+    radial-gradient(70vw 460px at 50% -8%,rgba(255,255,255,.07),transparent 68%),
+    radial-gradient(50vw 420px at 0% 30%,rgba(220,38,38,.07),transparent 70%),
+    radial-gradient(50vw 420px at 100% 62%,rgba(37,117,252,.07),transparent 70%)}
+body{-webkit-font-smoothing:antialiased}
+.hero-logo{filter:drop-shadow(0 10px 34px rgba(255,255,255,.14))}
+.loc-grid{gap:16px}
+.tile{border-radius:20px;box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 26px 50px -30px rgba(0,0,0,.95);
+    transition:transform .22s cubic-bezier(.2,.7,.2,1),box-shadow .22s ease,border-color .22s ease}
+.tile:hover{transform:translateY(-5px)}
+.tile.action:hover{border-color:rgba(220,38,38,.55);box-shadow:0 30px 60px -28px rgba(220,38,38,.5)}
+.tile.anywhere:hover{border-color:rgba(37,117,252,.7);box-shadow:0 30px 60px -28px rgba(37,117,252,.55)}
+.tile.american:hover{box-shadow:0 30px 60px -28px rgba(183,30,41,.45)}
+.tile.academy:hover{box-shadow:0 30px 60px -30px rgba(255,255,255,.28)}
+.tile .t-bar{height:5px}
+.tile.action{background:linear-gradient(160deg,rgba(220,38,38,.12),transparent 42%),#0d0d0d}
+.tile.anywhere{background:linear-gradient(160deg,rgba(37,117,252,.2),transparent 50%),var(--aw-navy)}
+.tile.academy{background:linear-gradient(160deg,rgba(255,255,255,.07),transparent 45%),#0d0d0d}
+.t-enter{padding:6px 12px;border-radius:999px;border:1px solid currentColor;transition:color .2s,background .2s}
+.battle,.battle-row,.mp-loc-item,.mp-rep-row,.imp-done,.toast{border-radius:14px}
+.b-barwrap,.b-bar{border-radius:99px}
+.b-barwrap{overflow:hidden}
+.btn,.manage-toggle{border-radius:10px}
+.tile.dual .t-enter{border:none;padding:0}
+.tile.academy{margin-top:16px}
+input,select,textarea{border-radius:10px}
+@keyframes hubRise{from{opacity:0;transform:translateY(14px)}}
+.hero,.tile{animation:hubRise .5s cubic-bezier(.2,.7,.2,1) backwards}
+.loc-grid .tile:nth-child(2){animation-delay:.06s}.loc-grid .tile:nth-child(3){animation-delay:.12s}
+.loc-grid .tile:nth-child(4){animation-delay:.18s}.loc-grid .tile:nth-child(5){animation-delay:.24s}
+@media (prefers-reduced-motion:reduce){.hero,.tile{animation:none}.tile{transition:none}}
+</style>
 </head>
 <body>
 <div class="page">
