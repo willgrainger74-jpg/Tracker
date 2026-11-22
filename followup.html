@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+
+    <meta name="theme-color" content="#080808">
+    <meta name="apple-mobile-web-app-title" content="Action Group">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Follow-Up - Action Plumbing</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="location-filter.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root { --red:#dc2626;--gold:#eab308;--gold2:#a16207;--red2:#991b1b;--red3:#450a0a;--bg:#080808;--s1:#141414;--s2:#1a1a1a;--s3:#232323;--wire:rgba(255,255,255,0.09);--wire2:rgba(255,255,255,0.14);--muted:#aaa;--faint:#666;--text:#efefef; }
+        html.light{--gold:#a16207;--gold2:#854d0e;--bg:#f4f4f4;--s1:#ffffff;--s2:#ebebeb;--s3:#e0e0e0;--s4:#d4d4d4;--wire:rgba(0,0,0,0.08);--wire2:rgba(0,0,0,0.14);--wire3:rgba(0,0,0,0.22);--muted:#555555;--faint:#999999;--text:#111111;--red3:#fde8e8;}
+        body { background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh; }
+        .page { max-width:900px;margin:0 auto;padding:24px 20px 60px; }
+        .page-header { display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--wire); }
+        .page-title { font-family:'Bebas Neue',sans-serif;font-size:clamp(40px,6vw,72px);line-height:0.9;letter-spacing:2px; }
+        .page-title em { font-style:normal;color:var(--red); }
+        .page-sub { font-family:'Oswald',sans-serif;font-size:12px;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-top:6px; }
+        .back-btn { font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);border:1px solid var(--wire2);padding:10px 18px;text-decoration:none;white-space:nowrap;margin-top:8px;display:inline-block; }
+        .card { background:var(--s1);border:1px solid var(--wire);padding:22px 24px;margin-bottom:18px; }
+        .sec-label{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+        .sec-label::before{content:'';width:14px;height:2px;background:var(--red);flex:none}
+        .sec-label::after{content:'';flex:1;height:1px;background:var(--wire)}
+        .sec-label .n{color:var(--text)}
+        /* today banner */
+        .fu-today{background:linear-gradient(150deg,color-mix(in srgb,var(--red) 20%,transparent),transparent 55%),var(--s1);border:1px solid var(--wire2);border-radius:18px;padding:24px;margin-bottom:18px}
+        .fu-date{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--red)}
+        .fu-count{font-family:'Bebas Neue',sans-serif;font-size:clamp(34px,8vw,54px);line-height:1;letter-spacing:1.5px;margin-top:6px}
+        .fu-count em{font-style:normal;color:var(--red)}
+        .fu-sub{font-size:13px;color:var(--muted);margin-top:8px}
+        /* item */
+        .fu-item{background:var(--s2);border:1px solid var(--wire);border-left:3px solid var(--wire2);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+        .fu-item.due{border-left-color:var(--red)}
+        .fu-item.late{border-left-color:#f59e0b}
+        .fu-item.done{opacity:.6}
+        .fu-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+        .fu-name{font-family:'Oswald',sans-serif;font-size:17px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+        .fu-meta{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.5}
+        .fu-pill{flex:none;font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:999px;border:1px solid var(--wire2);color:var(--muted);white-space:nowrap}
+        .fu-pill.est{color:#f59e0b;border-color:rgba(245,158,11,.45);background:rgba(245,158,11,.1)}
+        .fu-pill.lost{color:var(--red);border-color:rgba(220,38,38,.45);background:rgba(220,38,38,.1)}
+        .fu-reason{margin-top:10px;padding:10px 12px;background:var(--s3);border-radius:10px;font-size:13.5px;line-height:1.45}
+        .fu-reason b{font-family:'Oswald',sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:2px}
+        .fu-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+        .fu-btn{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:10px 14px;border-radius:10px;border:1px solid var(--wire2);background:var(--s3);color:var(--text);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+        .fu-btn.call{background:var(--red);border-color:var(--red);color:#fff}
+        .fu-btn.ok{color:#22c55e;border-color:rgba(34,197,94,.45)}
+        .fu-when{display:inline-flex;align-items:center;gap:6px;font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+        .fu-when input{background:var(--s3);border:1px solid var(--wire2);color:var(--text);padding:9px 10px;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;outline:none;color-scheme:dark;width:auto}
+        html.light .fu-when input{color-scheme:light}
+        .fu-empty{font-size:13px;color:var(--muted);padding:6px 2px}
+        .fu-more{width:100%;background:transparent;border:1px dashed var(--wire2);color:var(--muted);border-radius:12px;padding:12px;font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;margin-top:4px}
+        @media(max-width:520px){.fu-btn{flex:1;justify-content:center}.fu-when{width:100%}.fu-when input{flex:1}}
+</style>
+<link rel="stylesheet" href="ui.css">
+</head>
+<body>
+<div id="themeToggleWrap" style="position:fixed;top:12px;right:16px;z-index:9999;display:flex;flex-direction:row-reverse;align-items:center;gap:10px;"><img src="actionsite-logo.png" alt="Action Plumbing" class="hdr-logo" style="height:30px;width:auto;display:block"><style>@media(max-width:520px){.hdr-logo{height:22px!important}}</style>
+  <button id="themeToggleBtn" onclick="toggleTheme()" style="background:var(--s2);border:1px solid var(--wire2);color:var(--muted);font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:7px 12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;">
+    <span id="themeIcon">☀️</span><span id="themeLabel">LIGHT</span>
+  </button>
+</div>
+<script>
+(function(){var t=localStorage.getItem('apTheme')||'dark';applyTheme(t);})();
+function applyTheme(t){localStorage.setItem('apTheme',t);if(t==='light'){document.documentElement.classList.add('light');var i=document.getElementById('themeIcon');var l=document.getElementById('themeLabel');if(i)i.textContent='🌙';if(l)l.textContent='DARK';}else{document.documentElement.classList.remove('light');var i=document.getElementById('themeIcon');var l=document.getElementById('themeLabel');if(i)i.textContent='☀️';if(l)l.textContent='LIGHT';}}
+function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyTheme(cur==='dark'?'light':'dark');}
+</script>
+
+
+<div class="page">
+    <div class="page-header">
+        <div>
+            <div class="page-title">Follow-<em>Up</em></div>
+            <div id="personName" class="page-sub"></div>
+        </div>
+        <a href="index.html" class="back-btn">← Dashboard</a>
+    </div>
+
+    <div class="fu-today">
+        <div class="fu-date" id="fuDate"></div>
+        <div class="fu-count" id="fuCount">Loading…</div>
+        <div class="fu-sub" id="fuSub"></div>
+    </div>
+
+    <div id="fuSections"></div>
+</div>
+<script>
+/* ══════════════════════════════════════════════════════════════
+   FOLLOW-UP — the signed-in rep's unsold calls, organised by the
+   follow-up date they set on the call card (calls.html):
+     followUpDate (YYYY-MM-DD) · followUpReason · followUpDone
+   Sections: due today → overdue → coming up → no date set →
+   completed. Nothing is copied — every row IS the original call
+   in callLogs, so marking done / rescheduling writes back to it.
+   ══════════════════════════════════════════════════════════════ */
+firebase.initializeApp({apiKey:"AIzaSyD9POKxbl9hSt2FNtzdv3RPVnAb0wWsNbU",authDomain:"action-sales-tracker.firebaseapp.com",databaseURL:"https://action-sales-tracker-default-rtdb.firebaseio.com",projectId:"action-sales-tracker",storageBucket:"action-sales-tracker.firebasestorage.app",messagingSenderId:"686455834332",appId:"1:686455834332:web:84e9b843f912522bbdd619"});
+const db=firebase.database(),selected=localStorage.getItem('selectedPerson');
+if(!selected)window.location.href='index.html';
+let logs={},showAllOther=false,showDone=false;
+const OTHER_DAYS=60;   // "no date set" list looks back this far unless Show Older is tapped
+const pad=n=>String(n).padStart(2,'0');
+const dk=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const money=n=>'$'+Math.round(parseFloat(n)||0).toLocaleString();
+const nice=k=>new Date(k+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+const OBJ={price:'Price too high',think:'Need to think',spouse:'Spouse approval',someone:'Have someone',quotes:'Multiple quotes',timing:'Not now',trust:'Trust/Reviews'};
+
+db.ref('salespeople').on('value',snap=>{const d=snap.val()||{};const p=d[selected];if(p)document.getElementById('personName').textContent='Follow-ups for: '+p.name;});
+db.ref('callLogs').on('value',snap=>{logs=snap.val()||{};if(typing())return;render();});
+/* don't rebuild the list out from under an open date picker */
+function typing(){const el=document.activeElement;return !!(el&&el.tagName==='INPUT'&&el.closest&&el.closest('#fuSections'));}
+document.addEventListener('blur',e=>{if(e.target&&e.target.closest&&e.target.closest('#fuSections'))setTimeout(()=>{if(!typing())render();},160);},true);
+
+function collect(){
+    const out=[],pre=selected+'_';
+    Object.keys(logs).forEach(key=>{
+        if(key.indexOf(pre)!==0||key.length!==pre.length+10)return;
+        const day=key.slice(-10),calls=logs[key]||{};
+        Object.keys(calls).forEach(id=>{const c=calls[id];if(!c||c.jobSold)return;
+            if(!c.customerName&&!c.customerPhone&&!c.followUpDate&&!c.leftEstimate&&!c.jobCancelled&&!c.couldntFinance)return; // blank card
+            out.push({key,id,day,c});});
+    });
+    return out;
+}
+function status(c){
+    if(c.couldntFinance)return{cls:'lost',txt:"Couldn't finance"+(parseFloat(c.financeLostAmount)?' · '+money(c.financeLostAmount):'')};
+    if(c.leftEstimate)return{cls:'est',txt:'Estimate'+(parseFloat(c.estimateAmount)?' '+money(c.estimateAmount):'')};
+    if(c.jobCancelled)return{cls:'lost',txt:'Cancelled'};
+    return{cls:'',txt:'Not sold'};
+}
+function item(x,kind){
+    const c=x.c,st=status(c),tel=String(c.customerPhone||'').replace(/[^0-9+]/g,'');
+    const trades=[c.tradePlumbing&&'Plumbing',c.tradeHVAC&&'HVAC',c.tradeElectrical&&'Electrical',c.tradeCameras&&'Cameras'].filter(Boolean).join(' · ');
+    const meta=['Call ran '+nice(x.day),c.jobNumber&&'Job #'+esc(c.jobNumber),trades,c.objection&&OBJ[c.objection]&&'Objection: '+OBJ[c.objection]].filter(Boolean).join(' · ');
+    const due=kind==='late'?`<span style="color:#f59e0b">Was due ${nice(c.followUpDate)}</span> · `:kind==='soon'?`Due ${nice(c.followUpDate)} · `:'';
+    const reason=c.followUpReason||(c.jobCancelled&&c.cancelReason)||'';
+    const k=`'${x.key}','${x.id}'`;
+    return `<div class="fu-item ${kind==='today'?'due':kind==='late'?'late':kind==='done'?'done':''}">
+        <div class="fu-top"><div style="min-width:0"><div class="fu-name">${esc(c.customerName)||'No name on call'}</div><div class="fu-meta">${due}${meta}${c.customerPhone?' · '+esc(c.customerPhone):''}</div></div><span class="fu-pill ${st.cls}">${st.txt}</span></div>
+        ${reason?`<div class="fu-reason"><b>${c.followUpReason?'Reason for follow-up':'Cancel reason'}</b>${esc(reason)}</div>`:''}
+        <div class="fu-actions">
+            ${tel?`<a class="fu-btn call" href="tel:${tel}"><i class="ti ti-phone"></i> Call</a>`:''}
+            ${kind==='done'?`<button class="fu-btn" onclick="setDone(${k},false)">Reopen</button>`:`<button class="fu-btn ok" onclick="setDone(${k},true)"><i class="ti ti-check"></i> Done</button>`}
+            ${kind==='done'?'':`<label class="fu-when">${c.followUpDate?'Move to':'Set date'} <input type="date" value="${c.followUpDate||''}" onchange="setDate(${k},this.value)"></label>`}
+        </div>
+    </div>`;
+}
+function section(title,list,kind,empty){
+    if(!list.length&&!empty)return '';
+    return `<div class="card"><div class="sec-label">${title} <span class="n">${list.length}</span></div>${list.length?list.map(x=>item(x,kind)).join(''):`<div class="fu-empty">${empty}</div>`}</div>`;
+}
+function render(){
+    const now=new Date(),today=dk(now),all=collect();
+    const open=all.filter(x=>!x.c.followUpDone);
+    const due=open.filter(x=>x.c.followUpDate===today);
+    const late=open.filter(x=>x.c.followUpDate&&x.c.followUpDate<today).sort((a,b)=>a.c.followUpDate<b.c.followUpDate?-1:1);
+    const soon=open.filter(x=>x.c.followUpDate&&x.c.followUpDate>today).sort((a,b)=>a.c.followUpDate<b.c.followUpDate?-1:1);
+    const cut=new Date(now);cut.setDate(cut.getDate()-OTHER_DAYS);const cutK=dk(cut);
+    const otherAll=open.filter(x=>!x.c.followUpDate).sort((a,b)=>a.day<b.day?1:-1);
+    const other=showAllOther?otherAll:otherAll.filter(x=>x.day>=cutK);
+    const done=all.filter(x=>x.c.followUpDone).sort((a,b)=>(b.c.followUpDoneAt||0)-(a.c.followUpDoneAt||0));
+
+    document.getElementById('fuDate').textContent=now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+    const n=due.length;
+    document.getElementById('fuCount').innerHTML=n?`You have <em>${n}</em> follow-up${n===1?'':'s'} today`:'No follow-ups due today';
+    document.getElementById('fuSub').textContent=[late.length&&late.length+' overdue',soon.length&&soon.length+' coming up',otherAll.length&&otherAll.length+' with no date set'].filter(Boolean).join(' · ')||'Set a follow-up date on any call you don\'t sell and it will show up here on that day.';
+
+    let html='';
+    html+=section("Today's Follow-Ups",due,'today',n?'':'Nothing scheduled for today.');
+    html+=section('Overdue — still need a call',late,'late');
+    html+=section('Coming Up',soon,'soon');
+    html+=section('Other Customers to Follow Up With — no date set',other,'other',otherAll.length?'':'Every unsold call has a follow-up date.');
+    if(otherAll.length>other.length)html+=`<button class="fu-more" onclick="showAllOther=true;render()">Show ${otherAll.length-other.length} older than ${OTHER_DAYS} days</button>`;
+    if(done.length)html+=showDone?section('Completed',done.slice(0,50),'done'):`<button class="fu-more" onclick="showDone=true;render()">Show ${done.length} completed</button>`;
+    document.getElementById('fuSections').innerHTML=html;
+}
+function setDone(key,id,v){db.ref(`callLogs/${key}/${id}`).update({followUpDone:v,followUpDoneAt:v?Date.now():null});}
+function setDate(key,id,v){db.ref(`callLogs/${key}/${id}`).update({followUpDate:v||'',followUpDone:false});}
+/* the list is keyed to today's date — if the app sits open past midnight, roll it over */
+let _day=dk(new Date());setInterval(()=>{const t=dk(new Date());if(t!==_day){_day=t;if(!typing())render();}},60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!typing())render();});
+</script>
+<style>
+#abn-sheet,#abn-scrim{display:none}
+body{padding-bottom:calc(76px + env(safe-area-inset-bottom))!important}
+#abn{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:99990;
+background:rgba(10,10,10,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+border-top:1px solid rgba(255,255,255,.09);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+html.light #abn{background:rgba(250,250,250,.94);border-top-color:rgba(0,0,0,.1)}
+.abn-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+padding:6px 2px;text-decoration:none;color:#8a8a8a;position:relative;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;font:inherit}
+.abn-ico{font-size:19px;line-height:1}
+.abn-lab{font-family:'Oswald',sans-serif;font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+.abn-tab.on{color:#dc2626}
+.abn-tab.on::before{content:'';position:absolute;top:-7px;left:25%;right:25%;height:2px;background:#dc2626}
+#abn-scrim.open{display:block;position:fixed;inset:0;z-index:99991;background:rgba(0,0,0,.55)}
+#abn-sheet.open{display:block;position:fixed;left:0;right:0;bottom:0;z-index:99992;
+background:#111;border-top:2px solid #dc2626;padding:18px 16px calc(20px + env(safe-area-inset-bottom))}
+html.light #abn-sheet.open{background:#fff}
+.abn-sh{font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:#7a7a7a;margin-bottom:12px}
+.abn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.abn-item{display:flex;align-items:center;gap:10px;padding:13px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);text-decoration:none;color:#e8e8e8}
+html.light .abn-item{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.08);color:#111}
+.abn-item .i{font-size:18px}
+.abn-item .t{font-family:'Oswald',sans-serif;font-size:11.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+@media (pointer:coarse) and (orientation:landscape){
+#abn,#abn-sheet.open,#abn-scrim.open{display:none!important}
+body{padding-bottom:0!important}
+}
+</style>
+<nav id="abn">
+ <a class="abn-tab" href="index.html" data-p="index.html"><span class="abn-ico"><i class="ti ti-home"></i></span><span class="abn-lab">Home</span></a>
+ <a class="abn-tab" href="calls.html" data-p="calls.html"><span class="abn-ico"><i class="ti ti-phone"></i></span><span class="abn-lab">Calls</span></a>
+ <a class="abn-tab" href="goals.html" data-p="goals.html"><span class="abn-ico"><i class="ti ti-target"></i></span><span class="abn-lab">My Report</span></a>
+ <a class="abn-tab" href="turnin.html" data-p="turnin.html"><span class="abn-ico"><i class="ti ti-clipboard-list"></i></span><span class="abn-lab">Turn-In</span></a>
+ <button class="abn-tab" id="abn-more" type="button"><span class="abn-ico"><i class="ti ti-menu-2"></i></span><span class="abn-lab">More</span></button>
+</nav>
+<div id="abn-scrim"></div>
+<div id="abn-sheet">
+ <div class="abn-sh">More</div>
+ <div class="abn-grid">
+  <a class="abn-item" href="followup.html"><span class="i"><i class="ti ti-calendar-event"></i></span><span class="t">Follow-Up</span></a>
+  <a class="abn-item" href="reports.html"><span class="i"><i class="ti ti-chart-bar"></i></span><span class="t">Team Report</span></a>
+  <a class="abn-item" href="money.html"><span class="i"><i class="ti ti-cash"></i></span><span class="t">Money Owed</span></a>
+  <a class="abn-item" href="competition.html"><span class="i"><i class="ti ti-trophy"></i></span><span class="t">Competition</span></a>
+  <a class="abn-item" href="doors.html"><span class="i"><i class="ti ti-door"></i></span><span class="t">Door Knock</span></a>
+  <a class="abn-item" href="gym.html"><span class="i"><i class="ti ti-barbell"></i></span><span class="t">Log Gym</span></a>
+  <a class="abn-item" href="training.html"><span class="i"><i class="ti ti-school"></i></span><span class="t">Sales Academy</span></a>
+  <a class="abn-item" href="manager.html"><span class="i"><i class="ti ti-compass"></i></span><span class="t">Manager</span></a>
+ </div>
+</div>
+<script>
+(function(){
+ var p=(location.pathname.split('/').pop()||'index.html');
+ document.querySelectorAll('.abn-tab[data-p]').forEach(function(t){if(t.getAttribute('data-p')===p)t.classList.add('on');});
+ var more=['followup.html','reports.html','money.html','competition.html','doors.html','gym.html','training.html','manager.html','action_workbook.html','team_workbook.html'];
+ if(more.indexOf(p)>-1)document.getElementById('abn-more').classList.add('on');
+ var sheet=document.getElementById('abn-sheet'),scrim=document.getElementById('abn-scrim');
+ document.getElementById('abn-more').onclick=function(){sheet.classList.toggle('open');scrim.classList.toggle('open');};
+ scrim.onclick=function(){sheet.classList.remove('open');scrim.classList.remove('open');};
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>

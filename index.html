@@ -726,12 +726,20 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                 <span class="card-num">01</span>
             </a>
 
+            <a href="followup.html" class="nav-card fade-up">
+                <span class="nav-card-icon"><i class="ti ti-calendar-event" style="color:var(--red)"></i></span>
+                <div class="nav-card-title">Follow-Up</div>
+                <div class="nav-card-desc">Your unsold calls, by the day you said you'd follow up</div>
+                <div class="nav-chips"><span class="chip">Today's List</span><span class="chip">Overdue</span></div>
+                <div class="live-chip" id="fuChip" style="display:none"></div>
+                <span class="card-num">02</span>
+            </a>
             <a href="goals.html" class="nav-card fade-up">
                 <span class="nav-card-icon"><i class="ti ti-target" style="color:var(--red)"></i></span>
                 <div class="nav-card-title">My Report</div>
                 <div class="nav-card-desc">Personal performance metrics</div>
                 <div class="nav-chips"><span class="chip">Goals</span><span class="chip">Forecasts</span></div>
-                <span class="card-num">02</span>
+                <span class="card-num">03</span>
             </a>
 
             <a href="reports.html" class="nav-card fade-up">
@@ -739,7 +747,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                 <div class="nav-card-title">Team Report</div>
                 <div class="nav-card-desc">Team metrics and leaderboards</div>
                 <div class="nav-chips"><span class="chip">Leaderboard</span><span class="chip">Goals</span></div>
-                <span class="card-num">03</span>
+                <span class="card-num">04</span>
             </a>
 
             <a href="money.html" class="nav-card fade-up">
@@ -747,7 +755,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                 <div class="nav-card-title">Money Owed</div>
                 <div class="nav-card-desc">Track outstanding payments</div>
                 <div class="nav-chips"><span class="chip">Payments</span><span class="chip">Follow-ups</span></div>
-                <span class="card-num">04</span>
+                <span class="card-num">05</span>
             </a>
 
             <a href="competition.html" class="nav-card fade-up">
@@ -755,7 +763,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                 <div class="nav-card-title">Competition</div>
                 <div class="nav-card-desc">Monthly team competition</div>
                 <div class="nav-chips"><span class="chip">Team vs Team</span><span class="chip">Rankings</span></div>
-                <span class="card-num">05</span>
+                <span class="card-num">06</span>
             </a>
 
             <a href="manager.html" class="nav-card mgr-card fade-up">
@@ -763,7 +771,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                 <div class="nav-card-title">Manager</div>
                 <div class="nav-card-desc">PIN-protected manager portal</div>
                 <div class="nav-chips"><span class="chip">Huddle</span><span class="chip">Intel</span></div>
-                <span class="card-num">06</span>
+                <span class="card-num">07</span>
             </a>
 
             <a href="turnin.html" class="nav-card fade-up">
@@ -771,7 +779,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                 <div class="nav-card-title">Daily Turn-In</div>
                 <div class="nav-card-desc">Auto-filled turn-in sheet from sold jobs</div>
                 <div class="nav-chips"><span class="chip">Print</span><span class="chip">Calendar</span></div>
-                <span class="card-num">07</span>
+                <span class="card-num">08</span>
             </a>
 
             <a href="doors.html" class="nav-card fade-up">
@@ -779,7 +787,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                 <div class="nav-card-title">Door Knock</div>
                 <div class="nav-card-desc">Log every door, track leads, follow-ups, and sales from the field</div>
                 <div class="nav-chips"><span class="chip">Leads</span><span class="chip">Follow-Ups</span><span class="chip">Streets</span></div>
-                <span class="card-num">08</span>
+                <span class="card-num">09</span>
             </a>
 
             <a href="training.html" class="nav-card training-card fade-up" style="border-top:2px solid var(--red);">
@@ -787,7 +795,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                 <div class="nav-card-title">Sales Academy <span class="training-new">New</span></div>
                 <div class="nav-card-desc">Full training system — scripts, objection handlers, AI roleplay, workbooks, daily drills, certification & more</div>
                 <div class="nav-chips"><span class="chip">AI Roleplay</span><span class="chip">Workbooks</span><span class="chip">Drills</span><span class="chip">Cert</span></div>
-                <span class="card-num">09</span>
+                <span class="card-num">10</span>
             </a>
 
             <a href="gym.html" class="nav-card fade-up">
@@ -795,7 +803,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                 <div class="nav-card-title">Log Gym</div>
                 <div class="nav-card-desc">Log workouts with photos and track the team gym leaderboard for the July competition</div>
                 <div class="nav-chips"><span class="chip">Sessions</span><span class="chip">Leaderboard</span><span class="chip">Photos</span></div>
-                <span class="card-num">10</span>
+                <span class="card-num">11</span>
             </a>
 
         </div>
@@ -1360,6 +1368,31 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
     };
 })();
 </script>
+<script>
+/* ── FOLLOW-UP tile chip — the signed-in rep's follow-ups due today / overdue ── */
+(function(){
+    const pad=n=>String(n).padStart(2,'0');
+    window.renderFollowUpChip=function(){
+        try{
+            const el=document.getElementById('fuChip'); if(!el) return;
+            const me=(typeof selected!=='undefined'&&selected)||localStorage.getItem('selectedPerson');
+            const L=(typeof logs!=='undefined'&&logs)?logs:{};
+            if(!me){el.style.display='none';return;}
+            const d=new Date(),today=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,pre=me+'_';
+            let due=0,late=0;
+            Object.keys(L).forEach(k=>{ if(k.indexOf(pre)!==0||k.length!==pre.length+10) return;
+                Object.values(L[k]||{}).forEach(c=>{ if(!c||c.jobSold||c.followUpDone||!c.followUpDate) return;
+                    if(c.followUpDate===today) due++; else if(c.followUpDate<today) late++; }); });
+            if(!due&&!late){el.style.display='none';return;}
+            el.style.display='flex';
+            el.innerHTML=[due?'<b>'+due+'</b>&nbsp;due today':'',late?'<b>'+late+'</b>&nbsp;overdue':''].filter(Boolean).join('&nbsp;·&nbsp;');
+        }catch(e){}
+    };
+    const _rs4=renderStats; renderStats=function(){_rs4();renderFollowUpChip();};
+    const _rn4=renderNav;   renderNav=function(){_rn4();renderFollowUpChip();};
+    renderFollowUpChip();
+})();
+</script>
 <style>
 #abn-sheet,#abn-scrim{display:none}
 body{padding-bottom:calc(76px + env(safe-area-inset-bottom))!important}
@@ -1399,6 +1432,7 @@ body{padding-bottom:0!important}
 <div id="abn-sheet">
  <div class="abn-sh">More</div>
  <div class="abn-grid">
+  <a class="abn-item" href="followup.html"><span class="i"><i class="ti ti-calendar-event"></i></span><span class="t">Follow-Up</span></a>
   <a class="abn-item" href="reports.html"><span class="i"><i class="ti ti-chart-bar"></i></span><span class="t">Team Report</span></a>
   <a class="abn-item" href="money.html"><span class="i"><i class="ti ti-cash"></i></span><span class="t">Money Owed</span></a>
   <a class="abn-item" href="competition.html"><span class="i"><i class="ti ti-trophy"></i></span><span class="t">Competition</span></a>
@@ -1412,7 +1446,7 @@ body{padding-bottom:0!important}
 (function(){
  var p=(location.pathname.split('/').pop()||'index.html');
  document.querySelectorAll('.abn-tab[data-p]').forEach(function(t){if(t.getAttribute('data-p')===p)t.classList.add('on');});
- var more=['reports.html','money.html','competition.html','doors.html','gym.html','training.html','manager.html','action_workbook.html','team_workbook.html'];
+ var more=['followup.html','reports.html','money.html','competition.html','doors.html','gym.html','training.html','manager.html','action_workbook.html','team_workbook.html'];
  if(more.indexOf(p)>-1)document.getElementById('abn-more').classList.add('on');
  var sheet=document.getElementById('abn-sheet'),scrim=document.getElementById('abn-scrim');
  document.getElementById('abn-more').onclick=function(){sheet.classList.toggle('open');scrim.classList.toggle('open');};

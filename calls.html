@@ -88,6 +88,13 @@ html.light input::placeholder,html.light textarea::placeholder{color:var(--faint
         .add-call-bottom { width:100%;background:transparent;border:2px dashed rgba(220,38,38,0.3);color:var(--red);font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;padding:16px;cursor:pointer;transition:all 0.15s;margin-top:8px; }
         .add-call-bottom:hover { background:var(--red3);border-color:var(--red); }
     
+/* ── FOLLOW-UP ── */
+.fu-box{border-left-color:#f59e0b}.fu-box .subsection-title{color:#f59e0b}
+.fu-quick{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.fu-quick button{flex:1 1 0;min-width:0;white-space:nowrap;background:var(--s3);border:1px solid var(--wire2);color:var(--muted);border-radius:999px;padding:9px 2px;font-family:'Oswald',sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.fu-quick button:hover{color:var(--text);border-color:var(--muted)}
+input[type=date]{background:var(--s3);border:1px solid var(--wire2);color:var(--text);padding:10px 14px;width:100%;font-family:'Inter',sans-serif;font-size:14px;outline:none;border-radius:10px;color-scheme:dark}
+html.light input[type=date]{color-scheme:light}
 /* ── COLLAPSIBLE CALL CARDS ── */
 .cc-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;color:var(--text);padding:14px 16px;font:inherit;-webkit-tap-highlight-color:transparent}
 .cc-row:hover{background:var(--s3)}
@@ -129,6 +136,7 @@ function applyTheme(t){localStorage.setItem('apTheme',t);if(t==='light'){documen
 function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyTheme(cur==='dark'?'light':'dark');}
 </script>
 
+<datalist id="fuReasons"><option value="Talking to spouse"><option value="Getting other quotes"><option value="Thinking it over"><option value="Waiting on financing"><option value="Waiting on payday / funds"><option value="Waiting on insurance"><option value="Landlord / owner approval"><option value="Wants to schedule later"></datalist>
 <!-- FLOATING ADD CALL BUTTON -->
 <button class="fab" id="fabAddCall">+ Add Call</button>
 
@@ -209,7 +217,8 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
     function ccSummary(c,i){
         const st=ccStatus(c);
         const trades=[c.tradePlumbing&&'Plumbing',c.tradeHVAC&&'HVAC',c.tradeElectrical&&'Electrical',c.tradeCameras&&'Cameras'].filter(Boolean).join(' · ');
-        const meta=[c.jobNumber&&'#'+ccEsc(c.jobNumber),trades,c.existingCustomer&&'Existing'].filter(Boolean).join(' · ');
+        const fu=(!c.jobSold&&c.followUpDate)?'Follow up '+new Date(c.followUpDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+        const meta=[fu,c.jobNumber&&'#'+ccEsc(c.jobNumber),trades,c.existingCustomer&&'Existing'].filter(Boolean).join(' · ');
         return `<button type="button" class="call-card cc-row cc-${st.cls}" onclick="ccToggle('${c.id}')">
             <span class="cc-n">${i+1}</span>
             <span class="cc-main"><span class="cc-name">${ccEsc(c.customerName)||'No name yet'}</span>${meta?`<span class="cc-meta">${meta}</span>`:''}</span>
@@ -217,6 +226,8 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
             <span class="cc-chev">▾</span>
         </button>`;
     }
+    /* quick-pick follow-up dates: N days from today (local) */
+    function setFollowUp(id,days){const d=new Date();d.setDate(d.getDate()+days);updateCall(id,'followUpDate',dk(d));}
     function ccToggle(id){
         ccState[id]=!ccState[id];
         if(window.__lastCallsSnap&&window.__renderCalls) window.__renderCalls(window.__lastCallsSnap);
@@ -286,6 +297,10 @@ container.innerHTML=arr.map((c,i)=>!ccState[c.id]?ccSummary(c,i):`
                     ${c.leftEstimate?`<div class="field"><label>Estimate Amount ($)</label><input type="number" value="${c.estimateAmount||''}" onchange="updateCall('${c.id}','estimateAmount',parseFloat(this.value)||0)" /></div>`:''}
                     <label class="check-row"><input type="checkbox" ${c.couldntFinance?'checked':''} onchange="updateCall('${c.id}','couldntFinance',this.checked)"><span>🏦 Couldn't Finance Customer</span></label>
                     ${c.couldntFinance?`<div class="subsection fin-lost"><div class="subsection-title">Lost to Financing</div><div class="field" style="margin-bottom:0"><label>Dollar Amount Lost ($)</label><input type="number" inputmode="decimal" value="${c.financeLostAmount||''}" onchange="updateCall('${c.id}','financeLostAmount',parseFloat(this.value)||0)" placeholder="${c.estimateAmount?c.estimateAmount:'0.00'}" /></div></div>`:''}
+                    ${!c.jobSold?`<div class="subsection fu-box"><div class="subsection-title">📅 Follow-Up</div>
+                        <div class="field"><label>When are we following up?</label><input type="date" value="${c.followUpDate||''}" onchange="updateCall('${c.id}','followUpDate',this.value)" />
+                        <div class="fu-quick"><button type="button" onclick="setFollowUp('${c.id}',1)">Tomorrow</button><button type="button" onclick="setFollowUp('${c.id}',3)">3 Days</button><button type="button" onclick="setFollowUp('${c.id}',7)">1 Week</button><button type="button" onclick="setFollowUp('${c.id}',30)">1 Month</button></div></div>
+                        <div class="field" style="margin-bottom:0"><label>Reason for follow-up</label><input type="text" list="fuReasons" value="${ccEsc(c.followUpReason)}" onchange="updateCall('${c.id}','followUpReason',this.value)" placeholder="Why are we going back?" /></div></div>`:''}
                     <hr class="divider"><div class="section-label">Trade Type</div>
                     <div class="trade-grid">
                         <label class="check-row"><input type="checkbox" ${c.tradePlumbing?'checked':''} onchange="updateCall('${c.id}','tradePlumbing',this.checked)"><span>🔧 Plumbing</span></label>
@@ -324,7 +339,7 @@ container.innerHTML=arr.map((c,i)=>!ccState[c.id]?ccSummary(c,i):`
                     <button type="button" class="cc-done" onclick="ccToggle('${c.id}')">✓ Done — Collapse</button>
                 </div>`).join('');
         });
-        const newCallPayload={customerName:'',jobNumber:'',customerPhone:'',reviewCompleted:false,reviewWithPic:false,restorationLead:false,turnoverAttempted:false,turnoverAccepted:false,threeDoorKnocks:false,stNotes:false,stickers:false,company:'action',membershipPlanSold:false,upsellCompleted:false,upsellAmount:0,jobComplete:false,jobSold:false,amountSold:0,amountCollected:0,moneyOwed:0,paymentMethod:'',hasParts:false,hasLabor:false,isNewCustomer:false,existingCustomer:false,couldntFinance:false,financeLostAmount:0,leftEstimate:false,estimateAmount:0,jobCancelled:false,cancelReason:'',tradePlumbing:false,tradeHVAC:false,tradeElectrical:false,tradeCameras:false,actionThermostat:false,objection:'',soldFromTurnover:false,turnoverFrom:'',timestamp:Date.now(),timeOfDay:new Date().getHours()};
+        const newCallPayload={customerName:'',jobNumber:'',customerPhone:'',reviewCompleted:false,reviewWithPic:false,restorationLead:false,turnoverAttempted:false,turnoverAccepted:false,threeDoorKnocks:false,stNotes:false,stickers:false,company:'action',membershipPlanSold:false,upsellCompleted:false,upsellAmount:0,jobComplete:false,jobSold:false,amountSold:0,amountCollected:0,moneyOwed:0,paymentMethod:'',hasParts:false,hasLabor:false,isNewCustomer:false,existingCustomer:false,followUpDate:'',followUpReason:'',followUpDone:false,couldntFinance:false,financeLostAmount:0,leftEstimate:false,estimateAmount:0,jobCancelled:false,cancelReason:'',tradePlumbing:false,tradeHVAC:false,tradeElectrical:false,tradeCameras:false,actionThermostat:false,objection:'',soldFromTurnover:false,turnoverFrom:'',timestamp:Date.now(),timeOfDay:new Date().getHours()};
         const doAddCall=()=>{ /* fold every open card so only the new call is expanded */ Object.keys(ccState).forEach(id=>{ccState[id]=false;}); db.ref(`callLogs/${key}`).push().set({...newCallPayload,timestamp:Date.now(),timeOfDay:new Date().getHours()}).then(ref=>{ setTimeout(()=>{ const cards=document.querySelectorAll('.call-card'); if(cards.length) cards[cards.length-1].scrollIntoView({behavior:'smooth',block:'start'}); },200); }); };
         document.getElementById('addCallBtn').onclick=doAddCall;
         document.getElementById('addCallBottom').onclick=doAddCall;
@@ -415,6 +430,7 @@ body{padding-bottom:0!important}
 <div id="abn-sheet">
  <div class="abn-sh">More</div>
  <div class="abn-grid">
+  <a class="abn-item" href="followup.html"><span class="i"><i class="ti ti-calendar-event"></i></span><span class="t">Follow-Up</span></a>
   <a class="abn-item" href="reports.html"><span class="i"><i class="ti ti-chart-bar"></i></span><span class="t">Team Report</span></a>
   <a class="abn-item" href="money.html"><span class="i"><i class="ti ti-cash"></i></span><span class="t">Money Owed</span></a>
   <a class="abn-item" href="competition.html"><span class="i"><i class="ti ti-trophy"></i></span><span class="t">Competition</span></a>
@@ -428,7 +444,7 @@ body{padding-bottom:0!important}
 (function(){
  var p=(location.pathname.split('/').pop()||'index.html');
  document.querySelectorAll('.abn-tab[data-p]').forEach(function(t){if(t.getAttribute('data-p')===p)t.classList.add('on');});
- var more=['reports.html','money.html','competition.html','doors.html','gym.html','training.html','manager.html','action_workbook.html','team_workbook.html'];
+ var more=['followup.html','reports.html','money.html','competition.html','doors.html','gym.html','training.html','manager.html','action_workbook.html','team_workbook.html'];
  if(more.indexOf(p)>-1)document.getElementById('abn-more').classList.add('on');
  var sheet=document.getElementById('abn-sheet'),scrim=document.getElementById('abn-scrim');
  document.getElementById('abn-more').onclick=function(){sheet.classList.toggle('open');scrim.classList.toggle('open');};

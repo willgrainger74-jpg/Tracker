@@ -7,7 +7,7 @@
    reconnects.
    Bump CACHE_VERSION any time you want to force-clear old caches.
    ══════════════════════════════════════════════════════════════════ */
-const CACHE_VERSION = 'action-group-v17';
+const CACHE_VERSION = 'action-group-v18';
 
 self.addEventListener('install', (e) => {
     self.skipWaiting();
