@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+
+    <meta name="theme-color" content="#080808">
+    <meta name="apple-mobile-web-app-title" content="Action Group">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>New Hire - Action Plumbing</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="location-filter.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root { --red:#dc2626;--gold:#eab308;--gold2:#a16207;--red2:#991b1b;--red3:#450a0a;--bg:#080808;--s1:#141414;--s2:#1a1a1a;--s3:#232323;--wire:rgba(255,255,255,0.09);--wire2:rgba(255,255,255,0.14);--muted:#aaa;--faint:#666;--text:#efefef; }
+        html.light{--gold:#a16207;--gold2:#854d0e;--bg:#f4f4f4;--s1:#ffffff;--s2:#ebebeb;--s3:#e0e0e0;--s4:#d4d4d4;--wire:rgba(0,0,0,0.08);--wire2:rgba(0,0,0,0.14);--wire3:rgba(0,0,0,0.22);--muted:#555555;--faint:#999999;--text:#111111;--red3:#fde8e8;}
+        body { background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh; }
+        .page { max-width:900px;margin:0 auto;padding:24px 20px 60px; }
+        .page-header { display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--wire); }
+        .page-title { font-family:'Bebas Neue',sans-serif;font-size:clamp(40px,6vw,72px);line-height:0.9;letter-spacing:2px; }
+        .page-title em { font-style:normal;color:var(--red); }
+        .page-sub { font-family:'Oswald',sans-serif;font-size:12px;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-top:6px; }
+        .back-btn { font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);border:1px solid var(--wire2);padding:10px 18px;text-decoration:none;white-space:nowrap;margin-top:8px;display:inline-block; }
+        .card { background:var(--s1);border:1px solid var(--wire);padding:22px 24px;margin-bottom:18px; }
+        .sec-label{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+        .sec-label::before{content:'';width:14px;height:2px;background:var(--red);flex:none}
+        .sec-label::after{content:'';flex:1;height:1px;background:var(--wire)}
+        .H{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.12em;font-weight:600}
+        /* tabs */
+        .nh-tabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -4px 18px;padding:2px 4px}
+        .nh-tabs::-webkit-scrollbar{display:none}
+        .nh-tab{flex:none;font-family:'Oswald',sans-serif;font-size:12.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;padding:10px 16px;border-radius:999px;border:1px solid var(--wire2);background:var(--s1);color:var(--muted);cursor:pointer;white-space:nowrap}
+        .nh-tab.on{background:var(--red);border-color:var(--red);color:#fff}
+        /* hero */
+        .nh-hero{background:linear-gradient(150deg,color-mix(in srgb,var(--red) 20%,transparent),transparent 55%),var(--s1);border:1px solid var(--wire2);border-radius:18px;padding:22px 24px;margin-bottom:18px}
+        .nh-eyebrow{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--red)}
+        .nh-big{font-family:'Bebas Neue',sans-serif;font-size:clamp(32px,8vw,50px);line-height:1;letter-spacing:1.5px;margin-top:6px}
+        .nh-big em{font-style:normal;color:var(--red)}
+        .nh-sub{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5}
+        .nh-bar{height:8px;background:var(--s3);border-radius:99px;overflow:hidden;margin-top:14px}
+        .nh-bar > div{height:100%;background:var(--red);border-radius:99px;transition:width .3s ease}
+        .nh-bar.ok > div{background:#22c55e}
+        .nh-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+        .nh-stat{background:var(--s2);border:1px solid var(--wire);border-radius:12px;padding:10px 12px}
+        .nh-stat b{display:block;font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;font-weight:400;line-height:1.05}
+        .nh-stat span{font-family:'Oswald',sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+        /* check rows */
+        .check-row{display:flex;align-items:flex-start;gap:12px;padding:13px 14px;background:var(--s2);border:1px solid var(--wire);margin-bottom:8px;cursor:pointer;border-radius:10px}
+        .check-row input[type=checkbox]{width:20px;height:20px;accent-color:var(--red);cursor:pointer;flex:none;margin-top:1px}
+        .check-row .ct{font-family:'Oswald',sans-serif;font-size:14.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;line-height:1.3}
+        .check-row .cs{display:block;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--muted);margin-top:3px;line-height:1.4}
+        .check-row.star .ct::after{content:' ★';color:var(--gold)}
+        .nh-textitem{background:var(--s2);border:1px solid var(--wire);border-radius:10px;padding:13px 14px;margin-bottom:8px}
+        .nh-textitem.filled{border-color:color-mix(in srgb,var(--red) 55%,transparent);background:color-mix(in srgb,var(--red) 13%,transparent)}
+        .field{margin-bottom:14px}
+        .field label,.nh-textitem label{display:block;font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+        input[type=text],input[type=number],input[type=date],input[type=password],textarea,select{background:var(--s3);border:1px solid var(--wire2);color:var(--text);padding:11px 14px;width:100%;font-family:'Inter',sans-serif;font-size:15px;outline:none;border-radius:10px;color-scheme:dark}
+        html.light input,html.light textarea,html.light select{color-scheme:light}
+        textarea{min-height:84px;resize:vertical;line-height:1.45}
+        input:focus,textarea:focus,select:focus{border-color:var(--red)}
+        .nh-g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+        .nh-g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        .nh-conf{display:flex;gap:8px}
+        .nh-conf button{flex:1;padding:12px 0;border-radius:10px;border:1px solid var(--wire2);background:var(--s3);color:var(--muted);font-family:'Bebas Neue',sans-serif;font-size:22px;cursor:pointer}
+        .nh-conf button.on{background:var(--red);border-color:var(--red);color:#fff}
+        .nh-saved{font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#22c55e;opacity:0;transition:opacity .25s}
+        .nh-saved.show{opacity:1}
+        .btn{font-family:'Oswald',sans-serif;font-size:12.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;padding:12px 18px;border-radius:10px;border:1px solid var(--wire2);background:var(--s3);color:var(--text);cursor:pointer}
+        .btn-red{background:var(--red);border-color:var(--red);color:#fff}
+        /* past logs */
+        .nh-log{background:var(--s2);border:1px solid var(--wire);border-radius:12px;padding:13px 15px;margin-bottom:8px;cursor:pointer}
+        .nh-log-top{display:flex;justify-content:space-between;gap:10px;align-items:center}
+        .nh-log-date{font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+        .nh-log-nums{font-size:12.5px;color:var(--muted);white-space:nowrap}
+        .nh-log-body{font-size:13.5px;line-height:1.5;margin-top:10px;display:none}
+        .nh-log.open .nh-log-body{display:block}
+        .nh-log-body b{display:block;font-family:'Oswald',sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+        /* weeks */
+        .nh-week{background:var(--s1);border:1px solid var(--wire);border-radius:14px;margin-bottom:10px;overflow:hidden}
+        .nh-week.now{border-color:color-mix(in srgb,var(--red) 55%,transparent)}
+        .nh-week-h{display:flex;align-items:center;gap:12px;padding:15px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+        .nh-week-n{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;flex:1}
+        .nh-week-n small{font-family:'Oswald',sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.16em;color:var(--red);margin-left:8px;vertical-align:middle}
+        .nh-week-c{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.1em;color:var(--muted)}
+        .nh-week-c.ok{color:#22c55e}
+        .nh-week-b{padding:0 14px 8px;display:none}
+        .nh-week.open .nh-week-b{display:block}
+        /* welcome */
+        .nh-exp{background:var(--s2);border:1px solid var(--wire);border-left:3px solid var(--red);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+        .nh-exp h3{font-family:'Oswald',sans-serif;font-size:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+        .nh-exp h3 span{color:var(--muted);font-weight:500;font-size:12px;letter-spacing:.12em;margin-left:8px}
+        .nh-exp ul{margin:8px 0 0 18px;font-size:14px;line-height:1.6;color:var(--text)}
+        .nh-uni{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        .nh-uni div{background:var(--s2);border:1px solid var(--wire);border-radius:12px;padding:13px 15px}
+        .nh-uni div.today{border-color:var(--red)}
+        .nh-uni b{display:block;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600}
+        .nh-uni span{font-family:'Oswald',sans-serif;font-size:16px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;display:block;margin-top:4px}
+        .nh-view{background:color-mix(in srgb,var(--gold) 16%,transparent);border:1px solid var(--gold);border-radius:12px;padding:11px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13.5px}
+        /* manager table */
+        .nh-tbl{width:100%;border-collapse:collapse;font-size:13px}
+        .nh-tbl th{font-family:'Oswald',sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--wire2);white-space:nowrap}
+        .nh-tbl td{padding:10px;border-bottom:1px solid var(--wire);white-space:nowrap}
+        .nh-tbl tr.row{cursor:pointer}
+        .nh-tbl tr.row:hover td{background:var(--s2)}
+        .nh-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+        .ok{color:#22c55e}.warn{color:#f59e0b}.bad{color:var(--red)}
+        @media(max-width:520px){.nh-g3{grid-template-columns:1fr 1fr 1fr;gap:8px}.nh-g3.nh-en{grid-template-columns:1fr}.nh-uni{grid-template-columns:1fr}}
+</style>
+<link rel="stylesheet" href="ui.css">
+</head>
+<body>
+<div id="themeToggleWrap" style="position:fixed;top:12px;right:16px;z-index:9999;display:flex;flex-direction:row-reverse;align-items:center;gap:10px;"><img src="actionsite-logo.png" alt="Action Plumbing" class="hdr-logo" style="height:30px;width:auto;display:block"><style>@media(max-width:520px){.hdr-logo{height:22px!important}}</style>
+  <button id="themeToggleBtn" onclick="toggleTheme()" style="background:var(--s2);border:1px solid var(--wire2);color:var(--muted);font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:7px 12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;">
+    <span id="themeIcon">☀️</span><span id="themeLabel">LIGHT</span>
+  </button>
+</div>
+<script>
+(function(){var t=localStorage.getItem('apTheme')||'dark';applyTheme(t);})();
+function applyTheme(t){localStorage.setItem('apTheme',t);if(t==='light'){document.documentElement.classList.add('light');var i=document.getElementById('themeIcon');var l=document.getElementById('themeLabel');if(i)i.textContent='🌙';if(l)l.textContent='DARK';}else{document.documentElement.classList.remove('light');var i=document.getElementById('themeIcon');var l=document.getElementById('themeLabel');if(i)i.textContent='☀️';if(l)l.textContent='LIGHT';}}
+function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyTheme(cur==='dark'?'light':'dark');}
+</script>
+
+
+
+<div class="page">
+    <div class="page-header">
+        <div>
+            <div class="page-title">New <em>Hire</em></div>
+            <div id="personName" class="page-sub"></div>
+        </div>
+        <a href="index.html" class="back-btn">← Dashboard</a>
+    </div>
+    <div id="nhViewing"></div>
+    <div class="nh-tabs" id="nhTabs"></div>
+    <div id="nhBody"></div>
+</div>
+<script>
+/* ══════════════════════════════════════════════════════════════
+   NEW HIRE PROGRAM
+   Four parts for a rep's first weeks:
+     Today      — the morning checklist, done fresh every day
+     Daily Log  — reviews, doors, takeaways, what to work on
+     Training   — the week-by-week plan for their role, checked off
+     Welcome    — what we expect, uniforms, how the program works
+   Plus a PIN-gated Manager tab that shows every new hire at a glance.
+
+   Data lives under  newHire/<personId>/  in Firebase:
+     profile   {track, startDate}
+     checklist/<YYYY-MM-DD>/<itemKey>   true | text   (+ _doneAt)
+     log/<YYYY-MM-DD>   {reviews, doors, calls, takeaways, workOn, win, questions, confidence}
+     training/<itemKey>   timestamp it was checked off
+
+   TO EDIT THE CONTENT: change CHECKLIST, TRACKS or EXPECT below.
+   Renaming a checklist/training line un-checks it for everyone
+   (the saved check is keyed to the wording), so add new lines
+   instead of rewording old ones where you can.
+   ══════════════════════════════════════════════════════════════ */
+
+// ───────────── MORNING CHECKLIST ─────────────
+// type 'text' = they have to type an answer instead of ticking a box
+const CHECKLIST = [
+  { k:'uniform',  t:"Presentable and in today's uniform", sub:'uniform' },
+  { k:'ontime',   t:'On time and fully ready to work' },
+  { k:'notes',    t:'Took notes in the sales meeting' },
+  { k:'learned',  t:'One thing I learned in the meeting', type:'text', ph:'What stuck with you from this morning?' },
+  { k:'keys',     t:'Got the van keys from my trainer' },
+  { k:'vanclean', t:'Van is clean and organized' },
+  { k:'garbage',  t:'All garbage out, tools organized' },
+  { k:'tablet',   t:'Tablet is charged' },
+  { k:'stock',    t:'Van has stickers and door hangers' },
+  { k:'phone',    t:'Phone charged, GroupMe checked' },
+  { k:'gas',      t:'Gas checked — at least half a tank' },
+  { k:'calls',    t:"Went over today's calls with my trainer" },
+  { k:'goal',     t:'My goal for today', type:'text', ph:'e.g. Ask for 2 reviews, knock 10 doors' }
+];
+
+// ───────────── UNIFORMS (0 = Sunday) ─────────────
+const UNIFORM = { 1:'Gray / Light Blue', 3:'Gray / Light Blue', 5:'Gray / Light Blue', 2:'Khakis / Dark Blue', 4:'Khakis / Dark Blue', 6:'Khakis / Dark Blue' };
+
+// ───────────── TRAINING PLANS ─────────────
+// A line starting with * is a key item (gets a gold star).
+// Text after  ||  is a smaller explanation shown under the item (the saved check is keyed to the part before it).
+const TRACKS = {
+  sales: { name:'Sales', weeks:[
+    ['Week 1', ['How to dispatch out of a call || When you finish a call, call or text the dispatch number and report: you are done; sold or not sold; if sold, how much and how you collected; if not sold, the reason why; whether you did door hangers, stickers and notes; and anything else the office needs to know.','Uniforms and schedule, and why they matter — Mon/Wed/Fri Gray/Light Blue, Tue/Thu/Sat Khakis/Dark Blue','Reviews — watch how to get a good review, then ask for one yourself','Introduction — learn it from the Perfect Service Call, then do it yourself','Agenda — learn it from the Perfect Service Call, then do it yourself','Flyers and stickers — knock doors for flyers, put stickers on every appliance in the house','Intro to your trainer','Meetings — know the time and the importance of being on time','Intro to the office — meet the dispatchers and get their phone numbers','Action / training shirts']],
+    ['Week 2', ['GroupMe and turnovers','Get cell numbers for install managers and other managers','*Pics and notes in ServiceTitan','Turn-ins']],
+    ['Week 3', ['ServiceTitan — writing up estimates','Discovery','Gas, gas number, vehicle etiquette and maintenance','Divvy','Call debrief with the office']],
+    ['Week 4', ['iPad','*Financing','Salesman number spreadsheet','Perfect Service Call — know it, have your notes','Presentation','Commission and bonus structure','Manager phone calls','Membership sales and conversation','Test call']],
+    ['Week 5', ['Tools','Objections','Commercial accounts']],
+    ['Week 6', ['Role play word tracks until they are memorized','Test days']],
+    ['Objection Handling — 3 responses to each', ['"I need to think about it"','"I want to get a second opinion"','"I don\'t want to do the project now"','"I need to talk with my spouse"','"I already have a guy"']]
+  ]},
+  drain: { name:'Drain Tech', weeks:[
+    ['Week 1', ['Toilet auger','P-trap pull apart','Set toilets','Camera turnover','K45 / secondary auger']],
+    ['Week 2', ['Restoration turnover','Pull apart waste and overflows on tubs; drain covers on showers and floor drains','Take off clean-out cap']],
+    ['Week 3', ['Garbage disposals','Mainline auger','Install auto vents','Replace tubular','Build and replace toilets','Diagnose drum trap']],
+    ['Week 4', ['French drains','Adding clean-outs','Mini hydrojetter / mainline hydrojetter','Properly diagnose the customer\'s issues','Winterize hydrojetter']],
+    ['Week 5', ['Commercial flush valves','Whole-house hydrojetter','Shut-off valve','Urinals']]
+  ]},
+  hvac: { name:'HVAC Tech', weeks:[
+    ['Week 1', ['How to remove panels','Inspection','Names of equipment','How to change a filter','How to work a thermostat','Count vents','Difference between supplies and returns']],
+    ['Week 2', ['Volt meter','Function of an air scrubber','Function of a surge protector','Function of contactor, capacitor, flame sensor and igniter, and how to replace each','Drip leg — how to replace or install']],
+    ['Week 3', ['Parts cost','Thermostat installation','Acid bath','Read gauges properly (high and low side, subcool, superheat, VSAT, LSAT)','TXV and piston function, and how to read them on gauges','Surge protector','Low-voltage test for power','Diagnosis with volt meter and amp draw']],
+    ['Week 4', ['Proper diagnosis — know when to turn over to a home comfort specialist','Cleanings (A-coil, secondary heat exchanger, blower wheel)','Schrader cores, brass caps','Size equipment','Install air scrubber','Above-coil temp']],
+    ['Week 5', ['Sell a duct cleaning','PVC system','Condensate pump','Turnovers — what to look for in a house, and grammar']]
+  ]},
+  plumber: { name:'Licensed Plumber / Camera Supervisor', weeks:[
+    ['Week 1', ['Types of pipe (water and drain)','Sizes of pipe','How to do a water pressure test — and what good water pressure is','Main valves and PRV','Turnovers for electrical','Turnovers for camera','What to take pictures of for the installation chat','What to write up in the install chat']],
+    ['Week 2', ['Water heaters','Code upgrade requirements','How to tell age','Locating potential issues','Exhaust sizes, and how to run one for a tankless','Tankless — what comes with one','The common types of tankless','How to diagnose a tankless','Condensate pump','Gas lines','Gas shut-off valves, gas flexes, sediment traps']],
+    ['Week 3', ['Softeners and water filtration','Halo 5','Nuvo','Salt softeners — brands and how they work','How to size a softener properly for a house','Reverse osmosis','Air gaps']],
+    ['Week 4', ['Drains','How to locate a drain leak','Main stacks (drain)','Secondary stack (drain)','How to write up estimates for a drain repipe','Floor drain replacement','Disposals','Toilet flanges','Toilets']],
+    ['Week 5', ['Waterlines','How to locate a water leak','How to write up estimates for a water repipe','Shower valves','Shut-off valves (stops)','Fridge lines','Washer boxes','Manabloc manifolds','Faucets (fixtures)','Sinks']],
+    ['Week 6', ['Tub replacement','Shower replacement (tile / insert)']]
+  ]}
+};
+
+// ───────────── WHAT WE EXPECT ─────────────
+const EXPECT = [
+  ['Compliance','What you do every day', ['Log every call in the sales tracker','Ask for a review on every call','Pictures, notes and stickers on every job']],
+  ['Clarity','What the job is', ['Know your job description','Know your 30, 60 and 90 day goals — ask your trainer if you don\'t have them yet']],
+  ['Culture','Who we are', ['Hustlers!','Get in early, stay late','Great attitude']],
+  ['Connection','Who you need to know', ['Your trainer','The important managers — get their cell numbers','The dispatchers in the office','The other techs you\'ll work with']],
+  ['Check Back','How often we meet with you', ['Weekly check-ins for your first month','Ride-alongs for your first month']]
+];
+
+// ───────────── DISPATCHING OUT ─────────────
+const DISPATCH = ['You are done at the job','Whether it sold or did not sell','If it sold: how much, and how you collected','If it did not sell: the reason why','Whether you did door hangers, stickers and notes','Anything else the office needs to know'];
+
+/* ───────────── plumbing ───────────── */
+firebase.initializeApp({apiKey:"AIzaSyD9POKxbl9hSt2FNtzdv3RPVnAb0wWsNbU",authDomain:"action-sales-tracker.firebaseapp.com",databaseURL:"https://action-sales-tracker-default-rtdb.firebaseio.com",projectId:"action-sales-tracker",storageBucket:"action-sales-tracker.firebasestorage.app",messagingSenderId:"686455834332",appId:"1:686455834332:web:84e9b843f912522bbdd619"});
+const db=firebase.database(),me=localStorage.getItem('selectedPerson');
+if(!me)window.location.href='index.html';
+let viewing=me,people={},data={},allNH=null,tab=null,isMgr=sessionStorage.getItem('nhMgr')==='1',logDate=null,openWeeks={},ref=null;
+const pad=n=>String(n).padStart(2,'0');
+const dk=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const today=()=>dk(new Date());
+const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const nice=k=>new Date(k+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+const slug=t=>String(t).toLowerCase().replace(/^\*/,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,70);
+const $=id=>document.getElementById(id);
+const base=()=>`newHire/${viewing}`;
+
+db.ref('salespeople').on('value',s=>{people=s.val()||{};paintHeader();if(tab==='mgr')render();});
+function listen(){
+    if(ref){try{ref.off();}catch(e){}}
+    ref=db.ref(base());
+    ref.on('value',s=>{data=s.val()||{};if(tab===null)tab=(data.profile&&data.profile.track)?'today':'welcome';if(typing())return;render();});
+}
+function typing(){const el=document.activeElement;return !!(el&&(el.tagName==='TEXTAREA'||(el.tagName==='INPUT'&&el.type!=='checkbox'))&&el.closest&&el.closest('#nhBody'));}
+document.addEventListener('blur',e=>{if(e.target&&e.target.closest&&e.target.closest('#nhBody'))setTimeout(()=>{if(!typing())render();},180);},true);
+listen();
+
+function paintHeader(){
+    const p=people[viewing];
+    $('personName').textContent=p?('Program for: '+p.name):'';
+    $('nhViewing').innerHTML=(viewing!==me)?`<div class="nh-view"><span>Manager view — you are looking at <b>${esc(p?p.name:'this rep')}</b>. Changes you make here save to their program.</span><button class="btn" onclick="viewPerson('${me}')">Back to mine</button></div>`:'';
+}
+function viewPerson(id){viewing=id;data={};logDate=null;openWeeks={};tab=(id===me)?'today':'today';paintHeader();listen();}
+function setTab(t){tab=t;if(t==='mgr')loadAll();render();window.scrollTo({top:0});}
+
+/* ───────────── helpers on the data ───────────── */
+function track(){const k=data.profile&&data.profile.track;return TRACKS[k]?k:null;}
+function allItems(tk){const out=[];TRACKS[tk].weeks.forEach((w,wi)=>w[1].forEach(it=>{const pr=it.split(' || ');out.push({wi,key:tk+'_'+slug(pr[0]),text:pr[0].replace(/^\*/,''),detail:pr[1]||'',star:it.charAt(0)==='*'});}));return out;}
+function trainingPct(d,tk){if(!tk)return 0;const it=allItems(tk),tr=(d&&d.training)||{};return it.length?Math.round(it.filter(x=>tr[x.key]).length/it.length*100):0;}
+function weekNow(d){const s=d&&d.profile&&d.profile.startDate;if(!s)return null;const diff=Math.floor((new Date(today()+'T12:00:00')-new Date(s+'T12:00:00'))/864e5);return diff<0?0:Math.floor(diff/7)+1;}
+function checkCount(day){day=day||{};return CHECKLIST.filter(c=>c.type==='text'?String(day[c.k]||'').trim():day[c.k]===true).length;}
+function streak(d){const cl=(d&&d.checklist)||{};let n=0;const t=new Date();
+    for(let i=0;i<120;i++){const x=new Date(t);x.setDate(t.getDate()-i);if(x.getDay()===0)continue;const day=cl[dk(x)];
+        if(day&&day._doneAt)n++;else if(i===0)continue;else break;}
+    return n;}
+function last7(d){const lg=(d&&d.log)||{};let r=0,dr=0,days=0;const t=new Date();for(let i=0;i<7;i++){const x=new Date(t);x.setDate(t.getDate()-i);const e=lg[dk(x)];if(e){days++;r+=+e.reviews||0;dr+=+e.doors||0;}}return{r,dr,days};}
+
+/* ───────────── render ───────────── */
+function render(){
+    const tabs=[['today','Today'],['log','Daily Log'],['plan','Training Plan'],['welcome','Welcome']];
+    tabs.push(['mgr',isMgr?'Manager':'Manager 🔒']);
+    $('nhTabs').innerHTML=tabs.map(t=>`<button class="nh-tab ${tab===t[0]?'on':''}" onclick="setTab('${t[0]}')">${t[1]}</button>`).join('');
+    const tk=track();
+    if(!tk&&tab!=='welcome'&&tab!=='mgr'){$('nhBody').innerHTML=enrollCard(true);return;}
+    $('nhBody').innerHTML=tab==='today'?vToday():tab==='log'?vLog():tab==='plan'?vPlan():tab==='mgr'?vMgr():vWelcome();
+}
+
+function enrollCard(first){
+    const p=data.profile||{};
+    return `<div class="card"><div class="sec-label">${first?'Start your program':'Your program'}</div>
+        ${first?'<p class="nh-sub" style="margin:0 0 14px">Pick the role you were hired for and your first day. This sets up your training plan.</p>':''}
+        <div class="nh-g2"><div class="field"><label>Role</label><select id="enTrack">${Object.keys(TRACKS).map(k=>`<option value="${k}" ${p.track===k?'selected':''}>${TRACKS[k].name}</option>`).join('')}</select></div>
+        <div class="field"><label>First day</label><input type="date" id="enStart" value="${p.startDate||today()}"></div></div>
+        <button class="btn btn-red" onclick="saveProfile()">${first?'Start my program':'Save'}</button></div>`;
+}
+function saveProfile(){const t=$('enTrack').value,s=$('enStart').value||today();db.ref(base()+'/profile').update({track:t,startDate:s}).then(()=>{if(tab!=='welcome')return;tab='today';render();});}
+
+/* ── TODAY: morning checklist ── */
+function vToday(){
+    const t=today(),now=new Date(),day=(data.checklist&&data.checklist[t])||{},n=checkCount(day),tot=CHECKLIST.length,done=n===tot,uni=UNIFORM[now.getDay()];
+    const doneAt=day._doneAt?new Date(day._doneAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';
+    let h=`<div class="nh-hero"><div class="nh-eyebrow">${now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</div>
+        <div class="nh-big">${done?'Morning checklist <em>done</em>':`Morning checklist <em>${n}</em> of ${tot}`}</div>
+        <div class="nh-sub">${done?('Finished at '+doneAt+'. Go have a great day.'):'Do this every morning before your first call.'}${uni?` Today's uniform: <b style="color:var(--text)">${uni}</b>.`:''}</div>
+        <div class="nh-bar ${done?'ok':''}"><div style="width:${Math.round(n/tot*100)}%"></div></div>
+        <div class="nh-stats"><div class="nh-stat"><b>${streak(data)}</b><span>Day streak</span></div><div class="nh-stat"><b>${weekNow(data)||'—'}</b><span>Week</span></div><div class="nh-stat"><b>${trainingPct(data,track())}%</b><span>Training done</span></div></div></div>`;
+    h+='<div class="card"><div class="sec-label">Every morning</div>';
+    CHECKLIST.forEach(c=>{
+        if(c.type==='text'){const v=String(day[c.k]||'');h+=`<div class="nh-textitem ${v.trim()?'filled':''}"><label>${esc(c.t)}</label><input type="text" value="${esc(v)}" placeholder="${esc(c.ph||'')}" onchange="setCheck('${c.k}',this.value)"></div>`;}
+        else{const sub=c.sub==='uniform'?(uni?('Today: '+uni):'No uniform day listed for Sunday'):(c.sub||'');
+            h+=`<label class="check-row"><input type="checkbox" ${day[c.k]===true?'checked':''} onchange="setCheck('${c.k}',this.checked)"><span class="ct">${esc(c.t)}${sub?`<span class="cs">${esc(sub)}</span>`:''}</span></label>`;}
+    });
+    h+='</div>';
+    const lg=(data.log&&data.log[t]);
+    h+=`<div class="card"><div class="sec-label">End of day</div><p class="nh-sub" style="margin:0 0 12px">${lg?'You started today\'s log. Finish it before you head home.':'Before you head home, fill in today\'s log: reviews, doors, what you learned.'}</p><button class="btn btn-red" onclick="logDate=null;setTab('log')">${lg?'Finish today\'s log':'Fill in today\'s log'}</button></div>`;
+    return h;
+}
+function setCheck(k,v){
+    const t=today(),day=Object.assign({},(data.checklist&&data.checklist[t])||{});
+    if(v===false||v==='')delete day[k];else day[k]=(typeof v==='string')?v.trim():true;
+    const up={};up[k]=(k in day)?day[k]:null;
+    const full=checkCount(day)===CHECKLIST.length;
+    if(full&&!day._doneAt)up._doneAt=Date.now();
+    if(!full&&day._doneAt)up._doneAt=null;
+    db.ref(`${base()}/checklist/${t}`).update(up);
+}
+
+/* ── DAILY LOG ── */
+function vLog(){
+    const d=logDate||today(),e=(data.log&&data.log[d])||{},w=last7(data);
+    const num=(k,l)=>`<div class="field"><label>${l}</label><input type="number" inputmode="numeric" min="0" value="${e[k]!=null?e[k]:''}" placeholder="0" onchange="setLog('${k}',this.value===''?null:Math.max(0,parseInt(this.value)||0))"></div>`;
+    const txt=(k,l,ph)=>`<div class="field"><label>${l}</label><textarea placeholder="${ph}" onchange="setLog('${k}',this.value.trim()||null)">${esc(e[k]||'')}</textarea></div>`;
+    let h=`<div class="nh-hero"><div class="nh-eyebrow">Last 7 days</div><div class="nh-stats" style="margin-top:8px"><div class="nh-stat"><b>${w.r}</b><span>Reviews</span></div><div class="nh-stat"><b>${w.dr}</b><span>Doors knocked</span></div><div class="nh-stat"><b>${w.days}</b><span>Days logged</span></div></div></div>`;
+    h+=`<div class="card"><div class="sec-label">Log for ${d===today()?'today':nice(d)} <span class="nh-saved" id="nhSaved">Saved ✓</span></div>
+        <div class="field"><label>Day</label><input type="date" value="${d}" max="${today()}" onchange="logDate=this.value||null;render()"></div>
+        <div class="nh-g3">${num('reviews','Reviews')}${num('doors','Doors knocked')}${num('calls','Calls ran / rode')}</div>
+        ${txt('takeaways','Key takeaways — what did you learn today?','The two or three things you want to remember')}
+        ${txt('workOn','What do you need to work on?','Be honest — this is how your trainer knows where to help')}
+        ${txt('win','Win of the day','Something that went right')}
+        ${txt('questions','Questions for your trainer','Anything you were not sure about')}
+        <div class="field" style="margin-bottom:0"><label>How confident did you feel today? (1 = lost, 5 = could do it alone)</label><div class="nh-conf">${[1,2,3,4,5].map(i=>`<button type="button" class="${+e.confidence===i?'on':''}" onclick="setLog('confidence',${+e.confidence===i?'null':i})">${i}</button>`).join('')}</div></div></div>`;
+    const keys=Object.keys(data.log||{}).sort().reverse().slice(0,30);
+    h+='<div class="card"><div class="sec-label">Past logs</div>'+(keys.length?keys.map(k=>{const x=data.log[k];
+        return `<div class="nh-log" onclick="this.classList.toggle('open')"><div class="nh-log-top"><span class="nh-log-date">${nice(k)}</span><span class="nh-log-nums">${+x.reviews||0} reviews · ${+x.doors||0} doors${x.confidence?' · '+x.confidence+'/5':''}</span></div>
+            <div class="nh-log-body">${x.takeaways?'<b>Takeaways</b>'+esc(x.takeaways):''}${x.workOn?'<b>Needs work</b>'+esc(x.workOn):''}${x.win?'<b>Win</b>'+esc(x.win):''}${x.questions?'<b>Questions</b>'+esc(x.questions):''}
+            <div style="margin-top:10px"><button class="btn" onclick="event.stopPropagation();logDate='${k}';render();window.scrollTo({top:0})">Edit this day</button></div></div></div>`;}).join(''):'<p class="nh-sub" style="margin:0">No logs yet. Your first one goes in above.</p>')+'</div>';
+    return h;
+}
+function setLog(k,v){const d=logDate||today(),up={};up[k]=v;up.updatedAt=Date.now();db.ref(`${base()}/log/${d}`).update(up).then(()=>{const s=$('nhSaved');if(s){s.classList.add('show');setTimeout(()=>s.classList.remove('show'),1400);}});}
+
+/* ── TRAINING PLAN ── */
+function vPlan(){
+    const tk=track(),T=TRACKS[tk],tr=data.training||{},wn=weekNow(data),pct=trainingPct(data,tk),items=allItems(tk);
+    const numbered=T.weeks.filter(w=>/^Week \d/.test(w[0])).length;
+    let h=`<div class="nh-hero"><div class="nh-eyebrow">${esc(T.name)} training</div>
+        <div class="nh-big">${wn?(numbered&&wn<=numbered?`Week <em>${wn}</em> of ${numbered}`:(numbered?'Past week '+numbered:'In progress')):'Not started'}</div>
+        <div class="nh-sub">${items.filter(x=>tr[x.key]).length} of ${items.length} items checked off. Tick each one when your trainer has shown you and you have done it yourself.</div>
+        <div class="nh-bar ${pct===100?'ok':''}"><div style="width:${pct}%"></div></div></div>`;
+    T.weeks.forEach((w,wi)=>{
+        const its=items.filter(x=>x.wi===wi),dn=its.filter(x=>tr[x.key]).length,isNow=/^Week \d/.test(w[0])&&wn===wi+1;
+        const open=(wi in openWeeks)?openWeeks[wi]:(isNow||(!wn&&wi===0));
+        h+=`<div class="nh-week ${isNow?'now':''} ${open?'open':''}"><div class="nh-week-h" onclick="openWeeks[${wi}]=!${open};render()"><div class="nh-week-n">${esc(w[0])}${isNow?'<small>THIS WEEK</small>':''}</div><div class="nh-week-c ${dn===its.length?'ok':''}">${dn===its.length?'✓ Done':dn+' / '+its.length}</div><div style="color:var(--muted);font-size:12px">${open?'▴':'▾'}</div></div>
+            <div class="nh-week-b">${its.map(x=>`<label class="check-row ${x.star?'star':''}"><input type="checkbox" ${tr[x.key]?'checked':''} onchange="setTrain('${x.key}',this.checked)"><span class="ct">${esc(x.text)}${x.detail?`<span class="cs">${esc(x.detail)}</span>`:''}</span></label>`).join('')}</div></div>`;
+    });
+    if(tk==='sales')h+=`<div class="card"><p class="nh-sub" style="margin:0 0 12px">Practice your objection responses and word tracks in the Sales Academy.</p><a class="btn" href="training.html" style="text-decoration:none;display:inline-block">Open Sales Academy</a></div>`;
+    return h;
+}
+function setTrain(k,v){db.ref(`${base()}/training/${k}`).set(v?Date.now():null);}
+
+/* ── WELCOME ── */
+function vWelcome(){
+    const dow=new Date().getDay(),tk=track();
+    let h=`<div class="nh-hero"><div class="nh-eyebrow">Welcome to the team</div><div class="nh-big">Your first <em>six weeks</em></div>
+        <div class="nh-sub">This page is your program. Three habits make it work: do the <b style="color:var(--text)">morning checklist</b> before your first call, fill in your <b style="color:var(--text)">daily log</b> before you go home, and check off your <b style="color:var(--text)">training plan</b> as your trainer signs you off on each skill.</div></div>`;
+    h+=enrollCard(!tk);
+    h+='<div class="card"><div class="sec-label">What we expect</div>'+EXPECT.map(x=>`<div class="nh-exp"><h3>${x[0]}<span>${x[1]}</span></h3><ul>${x[2].map(li=>`<li>${esc(li)}</li>`).join('')}</ul></div>`).join('')+'</div>';
+    h+=`<div class="card"><div class="sec-label">Dispatching out of a call</div><p class="nh-sub" style="margin:0 0 10px">Every time you finish a call, call or text the dispatch number and tell the office:</p>
+        <div class="nh-exp"><ul style="margin-top:0">${DISPATCH.map(li=>`<li>${esc(li)}</li>`).join('')}</ul></div><p class="nh-sub" style="margin:0">Your trainer will give you the dispatch number.</p></div>`;
+    h+=`<div class="card"><div class="sec-label">Uniforms</div><div class="nh-uni"><div class="${[1,3,5].includes(dow)?'today':''}"><b>Monday · Wednesday · Friday</b><span>Gray / Light Blue</span></div><div class="${[2,4,6].includes(dow)?'today':''}"><b>Tuesday · Thursday · Saturday</b><span>Khakis / Dark Blue</span></div></div>
+        <p class="nh-sub" style="margin-top:12px">Be on time to every meeting, in uniform and ready to work.</p></div>`;
+    return h;
+}
+
+/* ── MANAGER ── */
+function loadAll(){if(!isMgr)return;db.ref('newHire').once('value').then(s=>{allNH=s.val()||{};if(tab==='mgr')render();});}
+function vMgr(){
+    if(!isMgr)return `<div class="card"><div class="sec-label">Manager view</div><p class="nh-sub" style="margin:0 0 14px">Enter the manager PIN to see every new hire's checklist, logs and training progress.</p>
+        <div class="field"><label>Manager PIN</label><input type="password" id="nhPin" inputmode="numeric" autocomplete="off" onkeydown="if(event.key==='Enter')mgrUnlock()"></div><div id="nhPinMsg" class="bad" style="font-size:13px;margin-bottom:10px"></div><button class="btn btn-red" onclick="mgrUnlock()">Unlock</button></div>`;
+    if(allNH===null)return '<div class="card"><p class="nh-sub" style="margin:0">Loading…</p></div>';
+    const t=today(),rows=Object.keys(allNH).filter(id=>people[id]&&allNH[id].profile&&TRACKS[allNH[id].profile.track]).map(id=>{
+        const d=allNH[id],tk=d.profile.track,day=(d.checklist&&d.checklist[t])||{},w=last7(d),lk=Object.keys(d.log||{}).sort().pop();
+        return {id,name:people[id].name,tk,wk:weekNow(d),pct:trainingPct(d,tk),cn:checkCount(day),doneAt:day._doneAt,last:lk,w,st:streak(d)};
+    }).sort((a,b)=>(a.name<b.name?-1:1));
+    let h=`<div class="card"><div class="sec-label">New hires at this location <span style="color:var(--text)">${rows.length}</span></div>`;
+    h+=rows.length?`<div class="nh-scroll"><table class="nh-tbl"><tr><th>Name</th><th>Role</th><th>Week</th><th>Training</th><th>Checklist today</th><th>Streak</th><th>Last log</th><th>7-day reviews</th><th>7-day doors</th></tr>${rows.map(r=>{
+        const cl=r.doneAt?`<span class="ok">✓ ${new Date(r.doneAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</span>`:`<span class="${r.cn?'warn':'bad'}">${r.cn} / ${CHECKLIST.length}</span>`;
+        const ll=r.last?(r.last===t?'<span class="ok">Today</span>':`<span class="${r.last<dk(new Date(Date.now()-2*864e5))?'bad':'warn'}">${nice(r.last)}</span>`):'<span class="bad">Never</span>';
+        return `<tr class="row" onclick="viewPerson('${r.id}')"><td><b>${esc(r.name)}</b></td><td>${esc(TRACKS[r.tk].name)}</td><td>${r.wk||'—'}</td><td>${r.pct}%</td><td>${cl}</td><td>${r.st}</td><td>${ll}</td><td>${r.w.r}</td><td>${r.w.dr}</td></tr>`;}).join('')}</table></div><p class="nh-sub" style="margin-top:12px">Tap a name to open their checklist, logs and training plan.</p>`
+        :'<p class="nh-sub" style="margin:0">Nobody at this location has started a program yet.</p>';
+    h+='</div>';
+    const others=Object.keys(people).filter(id=>!(allNH[id]&&allNH[id].profile&&allNH[id].profile.track)).sort((a,b)=>people[a].name<people[b].name?-1:1);
+    h+=`<div class="card"><div class="sec-label">Enroll someone</div><div class="nh-g3 nh-en"><div class="field"><label>Rep</label><select id="mgPerson">${others.map(id=>`<option value="${id}">${esc(people[id].name)}</option>`).join('')}</select></div>
+        <div class="field"><label>Role</label><select id="mgTrack">${Object.keys(TRACKS).map(k=>`<option value="${k}">${TRACKS[k].name}</option>`).join('')}</select></div>
+        <div class="field"><label>First day</label><input type="date" id="mgStart" value="${t}"></div></div><button class="btn btn-red" onclick="mgrEnroll()">Enroll</button>
+        <p class="nh-sub" style="margin-top:12px">New hires can also enroll themselves the first time they open this page. The rep has to be added in the Manager portal first.</p></div>`;
+    return h;
+}
+function mgrUnlock(){const v=$('nhPin').value.trim();db.ref('managerPin').once('value').then(s=>{if(v&&String(s.val())===v){isMgr=true;sessionStorage.setItem('nhMgr','1');loadAll();render();}else{$('nhPinMsg').textContent='That PIN is not right.';}});}
+function mgrEnroll(){const id=$('mgPerson').value;if(!id)return;db.ref(`newHire/${id}/profile`).update({track:$('mgTrack').value,startDate:$('mgStart').value||today()}).then(loadAll);}
+
+/* roll the checklist over if the app sits open past midnight */
+let _day=today();setInterval(()=>{if(today()!==_day){_day=today();if(!typing())render();}},60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!typing())render();});
+</script>
+<style>
+#abn-sheet,#abn-scrim{display:none}
+body{padding-bottom:calc(76px + env(safe-area-inset-bottom))!important}
+#abn{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:99990;
+background:rgba(10,10,10,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+border-top:1px solid rgba(255,255,255,.09);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+html.light #abn{background:rgba(250,250,250,.94);border-top-color:rgba(0,0,0,.1)}
+.abn-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+padding:6px 2px;text-decoration:none;color:#8a8a8a;position:relative;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;font:inherit}
+.abn-ico{font-size:19px;line-height:1}
+.abn-lab{font-family:'Oswald',sans-serif;font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+.abn-tab.on{color:#dc2626}
+.abn-tab.on::before{content:'';position:absolute;top:-7px;left:25%;right:25%;height:2px;background:#dc2626}
+#abn-scrim.open{display:block;position:fixed;inset:0;z-index:99991;background:rgba(0,0,0,.55)}
+#abn-sheet.open{display:block;position:fixed;left:0;right:0;bottom:0;z-index:99992;
+background:#111;border-top:2px solid #dc2626;padding:18px 16px calc(20px + env(safe-area-inset-bottom))}
+html.light #abn-sheet.open{background:#fff}
+.abn-sh{font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:#7a7a7a;margin-bottom:12px}
+.abn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.abn-item{display:flex;align-items:center;gap:10px;padding:13px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);text-decoration:none;color:#e8e8e8}
+html.light .abn-item{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.08);color:#111}
+.abn-item .i{font-size:18px}
+.abn-item .t{font-family:'Oswald',sans-serif;font-size:11.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+@media (pointer:coarse) and (orientation:landscape){
+#abn,#abn-sheet.open,#abn-scrim.open{display:none!important}
+body{padding-bottom:0!important}
+}
+</style>
+<nav id="abn">
+ <a class="abn-tab" href="index.html" data-p="index.html"><span class="abn-ico"><i class="ti ti-home"></i></span><span class="abn-lab">Home</span></a>
+ <a class="abn-tab" href="calls.html" data-p="calls.html"><span class="abn-ico"><i class="ti ti-phone"></i></span><span class="abn-lab">Calls</span></a>
+ <a class="abn-tab" href="goals.html" data-p="goals.html"><span class="abn-ico"><i class="ti ti-target"></i></span><span class="abn-lab">My Report</span></a>
+ <a class="abn-tab" href="turnin.html" data-p="turnin.html"><span class="abn-ico"><i class="ti ti-clipboard-list"></i></span><span class="abn-lab">Turn-In</span></a>
+ <button class="abn-tab" id="abn-more" type="button"><span class="abn-ico"><i class="ti ti-menu-2"></i></span><span class="abn-lab">More</span></button>
+</nav>
+<div id="abn-scrim"></div>
+<div id="abn-sheet">
+ <div class="abn-sh">More</div>
+ <div class="abn-grid">
+  <a class="abn-item" href="followup.html"><span class="i"><i class="ti ti-calendar-event"></i></span><span class="t">Follow-Up</span></a>
+  <a class="abn-item" href="newhire.html"><span class="i"><i class="ti ti-school"></i></span><span class="t">New Hire</span></a>
+  <a class="abn-item" href="reports.html"><span class="i"><i class="ti ti-chart-bar"></i></span><span class="t">Team Report</span></a>
+  <a class="abn-item" href="money.html"><span class="i"><i class="ti ti-cash"></i></span><span class="t">Money Owed</span></a>
+  <a class="abn-item" href="competition.html"><span class="i"><i class="ti ti-trophy"></i></span><span class="t">Competition</span></a>
+  <a class="abn-item" href="doors.html"><span class="i"><i class="ti ti-door"></i></span><span class="t">Door Knock</span></a>
+  <a class="abn-item" href="gym.html"><span class="i"><i class="ti ti-barbell"></i></span><span class="t">Log Gym</span></a>
+  <a class="abn-item" href="training.html"><span class="i"><i class="ti ti-school"></i></span><span class="t">Sales Academy</span></a>
+  <a class="abn-item" href="manager.html"><span class="i"><i class="ti ti-compass"></i></span><span class="t">Manager</span></a>
+ </div>
+</div>
+<script>
+(function(){
+ var p=(location.pathname.split('/').pop()||'index.html');
+ document.querySelectorAll('.abn-tab[data-p]').forEach(function(t){if(t.getAttribute('data-p')===p)t.classList.add('on');});
+ var more=['followup.html','newhire.html','reports.html','money.html','competition.html','doors.html','gym.html','training.html','manager.html','action_workbook.html','team_workbook.html'];
+ if(more.indexOf(p)>-1)document.getElementById('abn-more').classList.add('on');
+ var sheet=document.getElementById('abn-sheet'),scrim=document.getElementById('abn-scrim');
+ document.getElementById('abn-more').onclick=function(){sheet.classList.toggle('open');scrim.classList.toggle('open');};
+ scrim.onclick=function(){sheet.classList.remove('open');scrim.classList.remove('open');};
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>

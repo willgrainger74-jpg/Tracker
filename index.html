@@ -734,12 +734,20 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                 <div class="live-chip" id="fuChip" style="display:none"></div>
                 <span class="card-num">02</span>
             </a>
+            <a href="newhire.html" class="nav-card fade-up">
+                <span class="nav-card-icon"><i class="ti ti-school" style="color:var(--red)"></i></span>
+                <div class="nav-card-title">New Hire</div>
+                <div class="nav-card-desc">Your first weeks: morning checklist, daily log, training plan</div>
+                <div class="nav-chips"><span class="chip">Checklist</span><span class="chip">Daily Log</span><span class="chip">Training</span></div>
+                <div class="live-chip" id="nhChip" style="display:none"></div>
+                <span class="card-num">03</span>
+            </a>
             <a href="goals.html" class="nav-card fade-up">
                 <span class="nav-card-icon"><i class="ti ti-target" style="color:var(--red)"></i></span>
                 <div class="nav-card-title">My Report</div>
                 <div class="nav-card-desc">Personal performance metrics</div>
                 <div class="nav-chips"><span class="chip">Goals</span><span class="chip">Forecasts</span></div>
-                <span class="card-num">03</span>
+                <span class="card-num">04</span>
             </a>
 
             <a href="reports.html" class="nav-card fade-up">
@@ -747,7 +755,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                 <div class="nav-card-title">Team Report</div>
                 <div class="nav-card-desc">Team metrics and leaderboards</div>
                 <div class="nav-chips"><span class="chip">Leaderboard</span><span class="chip">Goals</span></div>
-                <span class="card-num">04</span>
+                <span class="card-num">05</span>
             </a>
 
             <a href="money.html" class="nav-card fade-up">
@@ -755,7 +763,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                 <div class="nav-card-title">Money Owed</div>
                 <div class="nav-card-desc">Track outstanding payments</div>
                 <div class="nav-chips"><span class="chip">Payments</span><span class="chip">Follow-ups</span></div>
-                <span class="card-num">05</span>
+                <span class="card-num">06</span>
             </a>
 
             <a href="competition.html" class="nav-card fade-up">
@@ -763,7 +771,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                 <div class="nav-card-title">Competition</div>
                 <div class="nav-card-desc">Monthly team competition</div>
                 <div class="nav-chips"><span class="chip">Team vs Team</span><span class="chip">Rankings</span></div>
-                <span class="card-num">06</span>
+                <span class="card-num">07</span>
             </a>
 
             <a href="manager.html" class="nav-card mgr-card fade-up">
@@ -771,7 +779,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                 <div class="nav-card-title">Manager</div>
                 <div class="nav-card-desc">PIN-protected manager portal</div>
                 <div class="nav-chips"><span class="chip">Huddle</span><span class="chip">Intel</span></div>
-                <span class="card-num">07</span>
+                <span class="card-num">08</span>
             </a>
 
             <a href="turnin.html" class="nav-card fade-up">
@@ -779,7 +787,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                 <div class="nav-card-title">Daily Turn-In</div>
                 <div class="nav-card-desc">Auto-filled turn-in sheet from sold jobs</div>
                 <div class="nav-chips"><span class="chip">Print</span><span class="chip">Calendar</span></div>
-                <span class="card-num">08</span>
+                <span class="card-num">09</span>
             </a>
 
             <a href="doors.html" class="nav-card fade-up">
@@ -787,7 +795,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                 <div class="nav-card-title">Door Knock</div>
                 <div class="nav-card-desc">Log every door, track leads, follow-ups, and sales from the field</div>
                 <div class="nav-chips"><span class="chip">Leads</span><span class="chip">Follow-Ups</span><span class="chip">Streets</span></div>
-                <span class="card-num">09</span>
+                <span class="card-num">10</span>
             </a>
 
             <a href="training.html" class="nav-card training-card fade-up" style="border-top:2px solid var(--red);">
@@ -795,7 +803,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                 <div class="nav-card-title">Sales Academy <span class="training-new">New</span></div>
                 <div class="nav-card-desc">Full training system — scripts, objection handlers, AI roleplay, workbooks, daily drills, certification & more</div>
                 <div class="nav-chips"><span class="chip">AI Roleplay</span><span class="chip">Workbooks</span><span class="chip">Drills</span><span class="chip">Cert</span></div>
-                <span class="card-num">10</span>
+                <span class="card-num">11</span>
             </a>
 
             <a href="gym.html" class="nav-card fade-up">
@@ -803,7 +811,7 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
                 <div class="nav-card-title">Log Gym</div>
                 <div class="nav-card-desc">Log workouts with photos and track the team gym leaderboard for the July competition</div>
                 <div class="nav-chips"><span class="chip">Sessions</span><span class="chip">Leaderboard</span><span class="chip">Photos</span></div>
-                <span class="card-num">11</span>
+                <span class="card-num">12</span>
             </a>
 
         </div>
@@ -1369,6 +1377,32 @@ function toggleTheme(){var cur=localStorage.getItem('apTheme')||'dark';applyThem
 })();
 </script>
 <script>
+/* ── NEW HIRE tile chip — today's morning checklist for the signed-in rep (only if they are enrolled) ── */
+(function(){
+    const TOTAL=13, TEXT=['learned','goal'];   // keep in step with CHECKLIST in newhire.html
+    const pad=n=>String(n).padStart(2,'0');
+    let watching=null;
+    function watch(){
+        const me=(typeof selected!=='undefined'&&selected)||localStorage.getItem('selectedPerson');
+        if(!me||me===watching||typeof db==='undefined') return;
+        watching=me;
+        db.ref('newHire/'+me+'/profile/track').on('value',function(ps){
+            const el=document.getElementById('nhChip'); if(!el) return;
+            if(!ps.val()){el.style.display='none';return;}
+            const d=new Date(),t=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+            db.ref('newHire/'+me+'/checklist/'+t).on('value',function(cs){
+                const day=cs.val()||{}; let n=0;
+                Object.keys(day).forEach(function(k){ if(k.charAt(0)==='_') return; if(TEXT.indexOf(k)>-1?String(day[k]||'').trim():day[k]===true) n++; });
+                el.style.display='flex';
+                el.innerHTML=day._doneAt?'<b>✓</b>&nbsp;checklist done today':'<b>'+n+'</b>&nbsp;of '+TOTAL+' on today\'s checklist';
+            });
+        });
+    }
+    try{ const _rn5=renderNav; renderNav=function(){_rn5();watch();}; }catch(e){}
+    watch();
+})();
+</script>
+<script>
 /* ── FOLLOW-UP tile chip — the signed-in rep's follow-ups due today / overdue ── */
 (function(){
     const pad=n=>String(n).padStart(2,'0');
@@ -1433,6 +1467,7 @@ body{padding-bottom:0!important}
  <div class="abn-sh">More</div>
  <div class="abn-grid">
   <a class="abn-item" href="followup.html"><span class="i"><i class="ti ti-calendar-event"></i></span><span class="t">Follow-Up</span></a>
+  <a class="abn-item" href="newhire.html"><span class="i"><i class="ti ti-school"></i></span><span class="t">New Hire</span></a>
   <a class="abn-item" href="reports.html"><span class="i"><i class="ti ti-chart-bar"></i></span><span class="t">Team Report</span></a>
   <a class="abn-item" href="money.html"><span class="i"><i class="ti ti-cash"></i></span><span class="t">Money Owed</span></a>
   <a class="abn-item" href="competition.html"><span class="i"><i class="ti ti-trophy"></i></span><span class="t">Competition</span></a>
@@ -1446,7 +1481,7 @@ body{padding-bottom:0!important}
 (function(){
  var p=(location.pathname.split('/').pop()||'index.html');
  document.querySelectorAll('.abn-tab[data-p]').forEach(function(t){if(t.getAttribute('data-p')===p)t.classList.add('on');});
- var more=['followup.html','reports.html','money.html','competition.html','doors.html','gym.html','training.html','manager.html','action_workbook.html','team_workbook.html'];
+ var more=['followup.html','newhire.html','reports.html','money.html','competition.html','doors.html','gym.html','training.html','manager.html','action_workbook.html','team_workbook.html'];
  if(more.indexOf(p)>-1)document.getElementById('abn-more').classList.add('on');
  var sheet=document.getElementById('abn-sheet'),scrim=document.getElementById('abn-scrim');
  document.getElementById('abn-more').onclick=function(){sheet.classList.toggle('open');scrim.classList.toggle('open');};

@@ -431,6 +431,7 @@ body{padding-bottom:0!important}
  <div class="abn-sh">More</div>
  <div class="abn-grid">
   <a class="abn-item" href="followup.html"><span class="i"><i class="ti ti-calendar-event"></i></span><span class="t">Follow-Up</span></a>
+  <a class="abn-item" href="newhire.html"><span class="i"><i class="ti ti-school"></i></span><span class="t">New Hire</span></a>
   <a class="abn-item" href="reports.html"><span class="i"><i class="ti ti-chart-bar"></i></span><span class="t">Team Report</span></a>
   <a class="abn-item" href="money.html"><span class="i"><i class="ti ti-cash"></i></span><span class="t">Money Owed</span></a>
   <a class="abn-item" href="competition.html"><span class="i"><i class="ti ti-trophy"></i></span><span class="t">Competition</span></a>
@@ -444,7 +445,7 @@ body{padding-bottom:0!important}
 (function(){
  var p=(location.pathname.split('/').pop()||'index.html');
  document.querySelectorAll('.abn-tab[data-p]').forEach(function(t){if(t.getAttribute('data-p')===p)t.classList.add('on');});
- var more=['followup.html','reports.html','money.html','competition.html','doors.html','gym.html','training.html','manager.html','action_workbook.html','team_workbook.html'];
+ var more=['followup.html','newhire.html','reports.html','money.html','competition.html','doors.html','gym.html','training.html','manager.html','action_workbook.html','team_workbook.html'];
  if(more.indexOf(p)>-1)document.getElementById('abn-more').classList.add('on');
  var sheet=document.getElementById('abn-sheet'),scrim=document.getElementById('abn-scrim');
  document.getElementById('abn-more').onclick=function(){sheet.classList.toggle('open');scrim.classList.toggle('open');};
