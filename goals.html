@@ -1163,7 +1163,8 @@ if ('serviceWorker' in navigator) {
     if (!window.AP_GAMIFY) return;              // gamify.js didn't load — do nothing
     var G = window.AP_GAMIFY;
     var knownBadges = null;                     // earn-dates from Firebase
-    var gymLogs = {}, training = {};
+    var gymLogs = {}, training = {}, nhGraduated = false;
+    try { firebase.database().ref('newHire/' + selected + '/profile/graduatedAt').once('value').then(function(s){ nhGraduated = !!s.val(); if (nhGraduated && typeof renderAll === 'function') renderAll(); }); } catch (e) {}
     var lastPid = null;
 
     // gym + training aren't loaded by this page — grab them once, shallow.
@@ -1257,6 +1258,7 @@ if ('serviceWorker' in navigator) {
                 pid: selected, logs: logs, gymLogs: gymLogs, training: training,
                 getCalls: getCalls, monthDates: mDates, weekDates: getWeek(new Date()),
                 rankMonth: rank,
+                graduated: nhGraduated,
                 kpiQualified: (function(){
                     var v = document.getElementById('kpiVerdict');
                     return !!v && /ON TRACK|QUALIFIED/.test(v.textContent);

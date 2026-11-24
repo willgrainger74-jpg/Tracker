@@ -151,7 +151,10 @@
           check:function(c){ return c.allTime.modules >= 5; } },
         { id:'student',          name:'Student of the Game', icon:'🎓', pillar:'training', rarity:'rare',
           desc:'5+ hours in the Sales Academy',
-          check:function(c){ return c.allTime.trainingMins >= 300; } }
+          check:function(c){ return c.allTime.trainingMins >= 300; } },
+        { id:'graduate',         name:'Graduate',         icon:'🎓', pillar:'training', rarity:'rare',
+          desc:'Graduated the New Hire program',
+          check:function(c){ return !!c.graduated; } }
     ];
 
     var RARITY_ORDER = { legendary: 0, rare: 1, uncommon: 2, common: 3 };
@@ -263,7 +266,7 @@
         allTime.modules      = (tp.modulesVisited || []).length;
         allTime.trainingMins = tp.totalTimeMinutes || 0;
 
-        var ctx = { allTime: allTime, month: month, week: week, rankMonth: o.rankMonth || 0 };
+        var ctx = { allTime: allTime, month: month, week: week, rankMonth: o.rankMonth || 0, graduated: !!o.graduated };
 
         var earned = BADGES.filter(function(b){
             try { return !!b.check(ctx); } catch (e) { return false; }

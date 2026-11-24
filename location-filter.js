@@ -112,6 +112,7 @@
        ───────────────────────────────────────────────────────────────── */
     var SCOPED_PATHS = {
         teamYearlyGoals: 1,
+        newHireContacts: 1,      // New Hire page: "who you need to know" list, one per location
         announcements: 1,
         monthlyCompetition: 1,
         competitionMeta: 1,

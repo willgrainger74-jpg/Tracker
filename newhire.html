@@ -111,6 +111,21 @@
         .nh-tbl tr.row:hover td{background:var(--s2)}
         .nh-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
         .ok{color:#22c55e}.warn{color:#f59e0b}.bad{color:var(--red)}
+        .nh-item{background:var(--s2);border:1px solid var(--wire);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+        html:not(.ui-nav-only) .nh-item .check-row{min-height:0;padding:0;background:none!important;border:none}
+        .nh-item.signed{border-color:rgba(34,197,94,.4)}
+        .nh-item-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 0 32px}
+        .nh-so{font-size:12px;color:var(--muted);flex:1;min-width:140px}
+        .nh-so.ok{color:#22c55e}
+        .nh-mini{font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:7px 11px;border-radius:999px;border:1px solid var(--wire2);background:var(--s3);color:var(--text);cursor:pointer;text-decoration:none;white-space:nowrap;display:inline-block}
+        .nh-mini.green{color:#22c55e;border-color:rgba(34,197,94,.5)}
+        .nh-mini.red{background:var(--red);border-color:var(--red);color:#fff}
+        .nh-vid{display:flex;gap:8px;margin:10px 0 0 32px}
+        .nh-vid input{flex:1}
+        .nh-test{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 4px 8px;font-size:13px;border-top:1px solid var(--wire);margin-top:6px}
+        .nh-test-btns{display:flex;gap:6px;margin-left:auto}
+        .nh-script{white-space:pre-wrap;font-size:14.5px;line-height:1.6}
+        .nh-contact{display:flex;gap:8px;align-items:center;background:var(--s2);border:1px solid var(--wire);border-radius:12px;padding:12px 14px;margin-bottom:8px}
         @media(max-width:520px){.nh-g3{grid-template-columns:1fr 1fr 1fr;gap:8px}.nh-g3.nh-en{grid-template-columns:1fr}.nh-uni{grid-template-columns:1fr}}
 </style>
 <link rel="stylesheet" href="ui.css">
@@ -233,25 +248,45 @@ const EXPECT = [
 // ───────────── DISPATCHING OUT ─────────────
 const DISPATCH = ['You are done at the job','Whether it sold or did not sell','If it sold: how much, and how you collected','If it did not sell: the reason why','Whether you did door hangers, stickers and notes','Anything else the office needs to know'];
 
-/* ───────────── plumbing ───────────── */
+/* ───────────── plumbing ─────────────
+   Extra data (Nov 2026 round 2):
+     newHire/<id>/signoff/<itemKey>  {at, by}     trainer/manager "I watched them do it"
+     newHire/<id>/tests/<weekKey>    {result:'pass'|'retest', at, by}
+     newHire/<id>/checkins/<pushId>  {date, week, well, work, goals, rating, ride, by, at}
+     newHire/<id>/goals              {d30, d60, d90}
+     newHire/<id>/profile            + graduatedAt, graduatedBy
+     newHire/<id>/stats              {total, learned, signed}  (kept in step for the morning email)
+     newHireConfig                   {trainerPin, scripts/<id>{title,body,at}, videos/<itemKey>: url}   shared by all locations
+     newHireContacts/<id>            {name, role, phone, at}   per location (redirected by location-filter.js)
+   Two unlock levels on the last tab: the manager PIN (everything) and an
+   optional trainer PIN (sign-offs, week tests, check-ins, the table). */
 firebase.initializeApp({apiKey:"AIzaSyD9POKxbl9hSt2FNtzdv3RPVnAb0wWsNbU",authDomain:"action-sales-tracker.firebaseapp.com",databaseURL:"https://action-sales-tracker-default-rtdb.firebaseio.com",projectId:"action-sales-tracker",storageBucket:"action-sales-tracker.firebasestorage.app",messagingSenderId:"686455834332",appId:"1:686455834332:web:84e9b843f912522bbdd619"});
 const db=firebase.database(),me=localStorage.getItem('selectedPerson');
 if(!me)window.location.href='index.html';
-let viewing=me,people={},data={},allNH=null,tab=null,isMgr=sessionStorage.getItem('nhMgr')==='1',logDate=null,openWeeks={},ref=null;
+let viewing=me,people={},data={},allNH=null,tab=null,role=sessionStorage.getItem('nhRole')||'',logDate=null,openWeeks={},ref=null,cfg={},contacts={},acadVids={},draft={},editVid=null,editScript=null;
+const isMgr=()=>role==='mgr', canSign=()=>role==='mgr'||role==='trainer';
 const pad=n=>String(n).padStart(2,'0');
 const dk=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const today=()=>dk(new Date());
 const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const nice=k=>new Date(k+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+const niceTs=t=>new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric'});
 const slug=t=>String(t).toLowerCase().replace(/^\*/,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,70);
 const $=id=>document.getElementById(id);
 const base=()=>`newHire/${viewing}`;
+const myName=()=>(people[me]&&people[me].name)||'Manager';
+const D=(k,v)=>{draft[k]=v;};                       // unsaved form text survives re-renders
+const dv=k=>esc(draft[k]||'');
 
-db.ref('salespeople').on('value',s=>{people=s.val()||{};paintHeader();if(tab==='mgr')render();});
+function safeRender(){if(typing())return;render();}
+db.ref('salespeople').on('value',s=>{people=s.val()||{};paintHeader();safeRender();});
+db.ref('newHireConfig').on('value',s=>{cfg=s.val()||{};safeRender();});
+db.ref('newHireContacts').on('value',s=>{contacts=s.val()||{};safeRender();});
+db.ref('academy/videos').once('value').then(s=>{acadVids=s.val()||{};}).catch(()=>{});
 function listen(){
     if(ref){try{ref.off();}catch(e){}}
     ref=db.ref(base());
-    ref.on('value',s=>{data=s.val()||{};if(tab===null)tab=(data.profile&&data.profile.track)?'today':'welcome';if(typing())return;render();});
+    ref.on('value',s=>{data=s.val()||{};if(tab===null)tab=(data.profile&&data.profile.track)?'today':'welcome';syncStats();safeRender();});
 }
 function typing(){const el=document.activeElement;return !!(el&&(el.tagName==='TEXTAREA'||(el.tagName==='INPUT'&&el.type!=='checkbox'))&&el.closest&&el.closest('#nhBody'));}
 document.addEventListener('blur',e=>{if(e.target&&e.target.closest&&e.target.closest('#nhBody'))setTimeout(()=>{if(!typing())render();},180);},true);
@@ -260,31 +295,36 @@ listen();
 function paintHeader(){
     const p=people[viewing];
     $('personName').textContent=p?('Program for: '+p.name):'';
-    $('nhViewing').innerHTML=(viewing!==me)?`<div class="nh-view"><span>Manager view — you are looking at <b>${esc(p?p.name:'this rep')}</b>. Changes you make here save to their program.</span><button class="btn" onclick="viewPerson('${me}')">Back to mine</button></div>`:'';
+    $('nhViewing').innerHTML=(viewing!==me)?`<div class="nh-view"><span>${isMgr()?'Manager':'Trainer'} view — you are looking at <b>${esc(p?p.name:'this rep')}</b>. Changes you make here save to their program.</span><button class="btn" onclick="viewPerson('${me}')">Back to mine</button></div>`:'';
 }
-function viewPerson(id){viewing=id;data={};logDate=null;openWeeks={};tab=(id===me)?'today':'today';paintHeader();listen();}
+function viewPerson(id){viewing=id;data={};logDate=null;openWeeks={};draft={};editVid=null;tab=(id===me)?'mgr':'plan';paintHeader();listen();window.scrollTo({top:0});}
 function setTab(t){tab=t;if(t==='mgr')loadAll();render();window.scrollTo({top:0});}
 
 /* ───────────── helpers on the data ───────────── */
 function track(){const k=data.profile&&data.profile.track;return TRACKS[k]?k:null;}
 function allItems(tk){const out=[];TRACKS[tk].weeks.forEach((w,wi)=>w[1].forEach(it=>{const pr=it.split(' || ');out.push({wi,key:tk+'_'+slug(pr[0]),text:pr[0].replace(/^\*/,''),detail:pr[1]||'',star:it.charAt(0)==='*'});}));return out;}
-function trainingPct(d,tk){if(!tk)return 0;const it=allItems(tk),tr=(d&&d.training)||{};return it.length?Math.round(it.filter(x=>tr[x.key]).length/it.length*100):0;}
-function weekNow(d){const s=d&&d.profile&&d.profile.startDate;if(!s)return null;const diff=Math.floor((new Date(today()+'T12:00:00')-new Date(s+'T12:00:00'))/864e5);return diff<0?0:Math.floor(diff/7)+1;}
+function counts(d,tk){if(!tk)return{total:0,learned:0,signed:0};const it=allItems(tk),tr=(d&&d.training)||{},so=(d&&d.signoff)||{};return{total:it.length,learned:it.filter(x=>tr[x.key]).length,signed:it.filter(x=>so[x.key]).length};}
+const pct=(n,t)=>t?Math.round(n/t*100):0;
+function syncStats(){const tk=track();if(!tk)return;const c=counts(data,tk),st=data.stats||{};if(st.total!==c.total||st.learned!==c.learned||st.signed!==c.signed)db.ref(base()+'/stats').set(c);}
+function dayNum(d){const s=d&&d.profile&&d.profile.startDate;if(!s)return null;return Math.floor((new Date(today()+'T12:00:00')-new Date(s+'T12:00:00'))/864e5)+1;}
+function weekNow(d){const n=dayNum(d);if(n===null)return null;return n<1?0:Math.floor((n-1)/7)+1;}
 function checkCount(day){day=day||{};return CHECKLIST.filter(c=>c.type==='text'?String(day[c.k]||'').trim():day[c.k]===true).length;}
 function streak(d){const cl=(d&&d.checklist)||{};let n=0;const t=new Date();
     for(let i=0;i<120;i++){const x=new Date(t);x.setDate(t.getDate()-i);if(x.getDay()===0)continue;const day=cl[dk(x)];
         if(day&&day._doneAt)n++;else if(i===0)continue;else break;}
     return n;}
 function last7(d){const lg=(d&&d.log)||{};let r=0,dr=0,days=0;const t=new Date();for(let i=0;i<7;i++){const x=new Date(t);x.setDate(t.getDate()-i);const e=lg[dk(x)];if(e){days++;r+=+e.reviews||0;dr+=+e.doors||0;}}return{r,dr,days};}
+function lastCheckin(d){const c=Object.values((d&&d.checkins)||{}).map(x=>x.date).filter(Boolean).sort();return c.pop()||null;}
+const grad=d=>d&&d.profile&&d.profile.graduatedAt;
 
 /* ───────────── render ───────────── */
 function render(){
-    const tabs=[['today','Today'],['log','Daily Log'],['plan','Training Plan'],['welcome','Welcome']];
-    tabs.push(['mgr',isMgr?'Manager':'Manager 🔒']);
+    const tabs=[['today','Today'],['log','Daily Log'],['plan','Training Plan'],['checkins','Check-Ins'],['scripts','Scripts'],['welcome','Welcome']];
+    tabs.push(['mgr',isMgr()?'Manager':role==='trainer'?'Trainer':'Manager 🔒']);
     $('nhTabs').innerHTML=tabs.map(t=>`<button class="nh-tab ${tab===t[0]?'on':''}" onclick="setTab('${t[0]}')">${t[1]}</button>`).join('');
     const tk=track();
-    if(!tk&&tab!=='welcome'&&tab!=='mgr'){$('nhBody').innerHTML=enrollCard(true);return;}
-    $('nhBody').innerHTML=tab==='today'?vToday():tab==='log'?vLog():tab==='plan'?vPlan():tab==='mgr'?vMgr():vWelcome();
+    if(!tk&&['today','log','plan','checkins'].includes(tab)){$('nhBody').innerHTML=enrollCard(true);return;}
+    $('nhBody').innerHTML=tab==='today'?vToday():tab==='log'?vLog():tab==='plan'?vPlan():tab==='checkins'?vCheckins():tab==='scripts'?vScripts():tab==='mgr'?vMgr():vWelcome();
 }
 
 function enrollCard(first){
@@ -299,13 +339,13 @@ function saveProfile(){const t=$('enTrack').value,s=$('enStart').value||today();
 
 /* ── TODAY: morning checklist ── */
 function vToday(){
-    const t=today(),now=new Date(),day=(data.checklist&&data.checklist[t])||{},n=checkCount(day),tot=CHECKLIST.length,done=n===tot,uni=UNIFORM[now.getDay()];
+    const t=today(),now=new Date(),day=(data.checklist&&data.checklist[t])||{},n=checkCount(day),tot=CHECKLIST.length,done=n===tot,uni=UNIFORM[now.getDay()],c=counts(data,track());
     const doneAt=day._doneAt?new Date(day._doneAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';
     let h=`<div class="nh-hero"><div class="nh-eyebrow">${now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</div>
         <div class="nh-big">${done?'Morning checklist <em>done</em>':`Morning checklist <em>${n}</em> of ${tot}`}</div>
         <div class="nh-sub">${done?('Finished at '+doneAt+'. Go have a great day.'):'Do this every morning before your first call.'}${uni?` Today's uniform: <b style="color:var(--text)">${uni}</b>.`:''}</div>
         <div class="nh-bar ${done?'ok':''}"><div style="width:${Math.round(n/tot*100)}%"></div></div>
-        <div class="nh-stats"><div class="nh-stat"><b>${streak(data)}</b><span>Day streak</span></div><div class="nh-stat"><b>${weekNow(data)||'—'}</b><span>Week</span></div><div class="nh-stat"><b>${trainingPct(data,track())}%</b><span>Training done</span></div></div></div>`;
+        <div class="nh-stats"><div class="nh-stat"><b>${streak(data)}</b><span>Day streak</span></div><div class="nh-stat"><b>${grad(data)?'🎓':(weekNow(data)||'—')}</b><span>${grad(data)?'Graduated':'Week'}</span></div><div class="nh-stat"><b>${pct(c.signed,c.total)}%</b><span>Signed off</span></div></div></div>`;
     h+='<div class="card"><div class="sec-label">Every morning</div>';
     CHECKLIST.forEach(c=>{
         if(c.type==='text'){const v=String(day[c.k]||'');h+=`<div class="nh-textitem ${v.trim()?'filled':''}"><label>${esc(c.t)}</label><input type="text" value="${esc(v)}" placeholder="${esc(c.ph||'')}" onchange="setCheck('${c.k}',this.value)"></div>`;}
@@ -350,31 +390,121 @@ function vLog(){
 }
 function setLog(k,v){const d=logDate||today(),up={};up[k]=v;up.updatedAt=Date.now();db.ref(`${base()}/log/${d}`).update(up).then(()=>{const s=$('nhSaved');if(s){s.classList.add('show');setTimeout(()=>s.classList.remove('show'),1400);}});}
 
-/* ── TRAINING PLAN ── */
+/* ── TRAINING PLAN: learned (the new hire) + signed off (trainer) + video + week test + graduation ── */
 function vPlan(){
-    const tk=track(),T=TRACKS[tk],tr=data.training||{},wn=weekNow(data),pct=trainingPct(data,tk),items=allItems(tk);
+    const tk=track(),T=TRACKS[tk],tr=data.training||{},so=data.signoff||{},tests=data.tests||{},vids=cfg.videos||{},wn=weekNow(data),items=allItems(tk),c=counts(data,tk),g=grad(data);
     const numbered=T.weeks.filter(w=>/^Week \d/.test(w[0])).length;
     let h=`<div class="nh-hero"><div class="nh-eyebrow">${esc(T.name)} training</div>
-        <div class="nh-big">${wn?(numbered&&wn<=numbered?`Week <em>${wn}</em> of ${numbered}`:(numbered?'Past week '+numbered:'In progress')):'Not started'}</div>
-        <div class="nh-sub">${items.filter(x=>tr[x.key]).length} of ${items.length} items checked off. Tick each one when your trainer has shown you and you have done it yourself.</div>
-        <div class="nh-bar ${pct===100?'ok':''}"><div style="width:${pct}%"></div></div></div>`;
+        <div class="nh-big">${g?'<em>Graduated</em> 🎓':(wn?(numbered&&wn<=numbered?`Week <em>${wn}</em> of ${numbered}`:(numbered?'Past week '+numbered:'In progress')):'Not started')}</div>
+        <div class="nh-sub">${g?('Graduated '+niceTs(g)+(data.profile.graduatedBy?' · signed by '+esc(data.profile.graduatedBy):'')+'. '):''}<b style="color:var(--text)">${c.signed} of ${c.total}</b> signed off by a trainer · ${c.learned} of ${c.total} marked learned. Tick an item when you have been shown it and done it yourself; your trainer signs it off once they have watched you do it.</div>
+        <div class="nh-bar ${c.signed===c.total&&c.total?'ok':''}"><div style="width:${pct(c.signed,c.total)}%"></div></div></div>`;
+    if(isMgr()&&viewing!==me||isMgr()&&g){
+        h+=`<div class="card"><div class="sec-label">Graduation</div>${g?`<p class="nh-sub" style="margin:0 0 12px">Graduated ${niceTs(g)}. They are off the active new-hire table and have the Graduate badge.</p><button class="btn" onclick="setGrad(false)">Undo graduation</button>`
+            :`<p class="nh-sub" style="margin:0 0 12px">${c.signed===c.total?'Every item is signed off. Ready to graduate.':(c.total-c.signed)+' item'+(c.total-c.signed===1?'':'s')+' still not signed off.'}</p><button class="btn ${c.signed===c.total?'btn-red':''}" onclick="setGrad(true)">${c.signed===c.total?'Graduate '+esc((people[viewing]||{}).name||''):'Graduate early anyway'}</button>`}</div>`;
+    }
     T.weeks.forEach((w,wi)=>{
-        const its=items.filter(x=>x.wi===wi),dn=its.filter(x=>tr[x.key]).length,isNow=/^Week \d/.test(w[0])&&wn===wi+1;
+        const its=items.filter(x=>x.wi===wi),ln=its.filter(x=>tr[x.key]).length,sn=its.filter(x=>so[x.key]).length,isNow=/^Week \d/.test(w[0])&&wn===wi+1&&!g;
         const open=(wi in openWeeks)?openWeeks[wi]:(isNow||(!wn&&wi===0));
-        h+=`<div class="nh-week ${isNow?'now':''} ${open?'open':''}"><div class="nh-week-h" onclick="openWeeks[${wi}]=!${open};render()"><div class="nh-week-n">${esc(w[0])}${isNow?'<small>THIS WEEK</small>':''}</div><div class="nh-week-c ${dn===its.length?'ok':''}">${dn===its.length?'✓ Done':dn+' / '+its.length}</div><div style="color:var(--muted);font-size:12px">${open?'▴':'▾'}</div></div>
-            <div class="nh-week-b">${its.map(x=>`<label class="check-row ${x.star?'star':''}"><input type="checkbox" ${tr[x.key]?'checked':''} onchange="setTrain('${x.key}',this.checked)"><span class="ct">${esc(x.text)}${x.detail?`<span class="cs">${esc(x.detail)}</span>`:''}</span></label>`).join('')}</div></div>`;
+        const wk=tk+'_'+slug(w[0]),tst=tests[wk];
+        h+=`<div class="nh-week ${isNow?'now':''} ${open?'open':''}"><div class="nh-week-h" onclick="openWeeks[${wi}]=!${open};render()"><div class="nh-week-n">${esc(w[0])}${isNow?'<small>THIS WEEK</small>':''}</div><div class="nh-week-c ${sn===its.length?'ok':''}">${sn===its.length?'✓ Signed off':sn+' / '+its.length+' signed'}${tst?(tst.result==='pass'?' · <span class="ok">Test ✓</span>':' · <span class="warn">Retest</span>'):''}</div><div style="color:var(--muted);font-size:12px">${open?'▴':'▾'}</div></div><div class="nh-week-b">`;
+        its.forEach(x=>{
+            const sg=so[x.key],v=vids[x.key];
+            h+=`<div class="nh-item ${sg?'signed':''}"><label class="check-row ${x.star?'star':''}" style="margin:0;border:none;background:none;padding:0"><input type="checkbox" ${tr[x.key]?'checked':''} onchange="setTrain('${x.key}',this.checked)"><span class="ct">${esc(x.text)}${x.detail?`<span class="cs">${esc(x.detail)}</span>`:''}</span></label>
+                <div class="nh-item-row">${sg?`<span class="nh-so ok">✓ Signed off${sg.by?' · '+esc(sg.by):''}${sg.at?' · '+niceTs(sg.at):''}</span>`:`<span class="nh-so">Not signed off yet</span>`}
+                ${v?`<a class="nh-mini red" href="${esc(v)}" target="_blank" rel="noopener">▶ Watch</a>`:''}
+                ${canSign()?`<button class="nh-mini ${sg?'':'green'}" onclick="setSign('${x.key}',${sg?'false':'true'})">${sg?'Undo sign-off':'Sign off'}</button>`:''}
+                ${isMgr()?`<button class="nh-mini" onclick="editVid=editVid==='${x.key}'?null:'${x.key}';draft.vid=${esc(JSON.stringify(v||''))};render()">${v?'Edit video':'+ Video'}</button>`:''}</div>
+                ${isMgr()&&editVid===x.key?`<div class="nh-vid"><input type="text" list="nhAcad" placeholder="Paste a video link, or pick one from the Academy" value="${dv('vid')}" oninput="D('vid',this.value)"><button class="btn btn-red" onclick="saveVid('${x.key}')">Save</button></div>`:''}</div>`;
+        });
+        h+=`<div class="nh-test"><span class="H" style="font-size:12px">Week test:</span> ${tst?(tst.result==='pass'?`<span class="ok">Passed</span>`:`<span class="warn">Needs retest</span>`)+` <span style="color:var(--muted)">· ${niceTs(tst.at)}${tst.by?' · '+esc(tst.by):''}</span>`:'<span style="color:var(--muted)">Not taken yet</span>'}
+            ${canSign()?`<span class="nh-test-btns"><button class="nh-mini green" onclick="setTest('${wk}','pass')">Pass</button><button class="nh-mini" onclick="setTest('${wk}','retest')">Needs retest</button>${tst?`<button class="nh-mini" onclick="setTest('${wk}',null)">Clear</button>`:''}</span>`:''}</div>`;
+        h+='</div></div>';
     });
+    h+=`<datalist id="nhAcad">${Object.values(acadVids).filter(v=>v&&v.url).map(v=>`<option value="${esc(v.url)}">${esc(v.title||'')}</option>`).join('')}</datalist>`;
     if(tk==='sales')h+=`<div class="card"><p class="nh-sub" style="margin:0 0 12px">Practice your objection responses and word tracks in the Sales Academy.</p><a class="btn" href="training.html" style="text-decoration:none;display:inline-block">Open Sales Academy</a></div>`;
     return h;
 }
 function setTrain(k,v){db.ref(`${base()}/training/${k}`).set(v?Date.now():null);}
+function setSign(k,v){if(!canSign())return;db.ref(`${base()}/signoff/${k}`).set(v?{at:Date.now(),by:myName()}:null);}
+function setTest(wk,r){if(!canSign())return;db.ref(`${base()}/tests/${wk}`).set(r?{result:r,at:Date.now(),by:myName()}:null);}
+function saveVid(k){if(!isMgr())return;const u=String(draft.vid||'').trim();if(u&&!/^https?:\/\//i.test(u)){alertMsg('That does not look like a link. It should start with https://');return;}db.ref('newHireConfig/videos/'+k).set(u||null);editVid=null;draft.vid='';render();}
+function setGrad(v){if(!isMgr())return;db.ref(base()+'/profile').update(v?{graduatedAt:Date.now(),graduatedBy:myName()}:{graduatedAt:null,graduatedBy:null}).then(loadAll);}
+function alertMsg(t){const el=document.createElement('div');el.textContent=t;el.style.cssText='position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:var(--s3);border:1px solid var(--wire2);color:var(--text);padding:12px 16px;border-radius:12px;z-index:99999;font-size:14px;max-width:86vw';document.body.appendChild(el);setTimeout(()=>el.remove(),3200);}
 
-/* ── WELCOME ── */
+/* ── CHECK-INS: the trainer's weekly write-up ── */
+function vCheckins(){
+    const list=Object.entries(data.checkins||{}).sort((a,b)=>(b[1].date||'')<(a[1].date||'')?-1:1),last=lastCheckin(data);
+    const since=last?Math.floor((new Date(today()+'T12:00:00')-new Date(last+'T12:00:00'))/864e5):null;
+    let h=`<div class="nh-hero"><div class="nh-eyebrow">Weekly check-ins</div><div class="nh-big">${list.length?`<em>${list.length}</em> check-in${list.length===1?'':'s'} so far`:'No check-ins yet'}</div>
+        <div class="nh-sub">Your trainer sits down with you every week for your first month: what is going well, what needs work, and your goals for next week.${last?` Last one: <b style="color:var(--text)">${nice(last)}</b>${since>7?` — <span class="warn">${since} days ago, one is due</span>`:''}.`:''}</div></div>`;
+    if(canSign()){
+        const r=+draft.ci_rating||0;
+        h+=`<div class="card"><div class="sec-label">New check-in</div>
+            <div class="nh-g2"><div class="field"><label>Date</label><input type="date" value="${draft.ci_date||today()}" max="${today()}" onchange="D('ci_date',this.value)"></div>
+            <div class="field"><label>Ride-along this week?</label><label class="check-row" style="margin:0"><input type="checkbox" ${draft.ci_ride?'checked':''} onchange="D('ci_ride',this.checked)"><span class="ct">Rode along</span></label></div></div>
+            <div class="field"><label>What is going well</label><textarea oninput="D('ci_well',this.value)">${dv('ci_well')}</textarea></div>
+            <div class="field"><label>What needs work</label><textarea oninput="D('ci_work',this.value)">${dv('ci_work')}</textarea></div>
+            <div class="field"><label>Goals for next week</label><textarea oninput="D('ci_goals',this.value)">${dv('ci_goals')}</textarea></div>
+            <div class="field"><label>Overall this week (1 = struggling, 5 = ahead of schedule)</label><div class="nh-conf">${[1,2,3,4,5].map(i=>`<button type="button" class="${r===i?'on':''}" onclick="D('ci_rating',${i});render()">${i}</button>`).join('')}</div></div>
+            <button class="btn btn-red" onclick="saveCheckin()">Save check-in</button></div>`;
+    }
+    h+='<div class="card"><div class="sec-label">History</div>'+(list.length?list.map(([id,x])=>`<div class="nh-exp"><h3>${x.date?nice(x.date):''}<span>${x.week?'Week '+x.week+' · ':''}${x.rating?x.rating+' / 5':''}${x.ride?' · Ride-along':''}${x.by?' · '+esc(x.by):''}</span></h3>
+        <div class="nh-log-body" style="display:block;margin-top:4px">${x.well?'<b>Going well</b>'+esc(x.well):''}${x.work?'<b>Needs work</b>'+esc(x.work):''}${x.goals?'<b>Goals for next week</b>'+esc(x.goals):''}</div>
+        ${isMgr()?`<div style="margin-top:10px"><button class="nh-mini" onclick="delCheckin('${id}')">Delete</button></div>`:''}</div>`).join(''):`<p class="nh-sub" style="margin:0">${canSign()?'Nothing saved yet. Fill in the form above after your first sit-down.':'Your trainer will add your first check-in at the end of your first week.'}</p>`)+'</div>';
+    return h;
+}
+function saveCheckin(){
+    if(!canSign())return;
+    if(!(draft.ci_well||draft.ci_work||draft.ci_goals)){alertMsg('Write at least one of the three boxes first.');return;}
+    const date=draft.ci_date||today(),s=data.profile&&data.profile.startDate;
+    const wk=s?Math.max(1,Math.floor((new Date(date+'T12:00:00')-new Date(s+'T12:00:00'))/864e5/7)+1):null;
+    db.ref(base()+'/checkins').push({date,week:wk,well:(draft.ci_well||'').trim(),work:(draft.ci_work||'').trim(),goals:(draft.ci_goals||'').trim(),rating:+draft.ci_rating||null,ride:!!draft.ci_ride,by:myName(),at:Date.now()});
+    ['ci_date','ci_well','ci_work','ci_goals','ci_rating','ci_ride'].forEach(k=>delete draft[k]);render();
+}
+function delCheckin(id){if(isMgr())db.ref(`${base()}/checkins/${id}`).remove();}
+
+/* ── SCRIPTS to memorize (written by the manager, shared by every location) ── */
+function vScripts(){
+    const list=Object.entries(cfg.scripts||{}).sort((a,b)=>(a[1].at||0)-(b[1].at||0));
+    let h=`<div class="nh-hero"><div class="nh-eyebrow">Know these cold</div><div class="nh-big">Scripts &amp; <em>word tracks</em></div><div class="nh-sub">Read them, say them out loud, and role play them with your trainer until you do not need the page.</div></div>`;
+    if(isMgr()){
+        h+=`<div class="card"><div class="sec-label">${editScript?'Edit script':'Add a script'}</div>
+            <div class="field"><label>Title</label><input type="text" placeholder="e.g. Perfect Service Call, Introduction, Agenda, Word Tracks" value="${dv('sc_title')}" oninput="D('sc_title',this.value)"></div>
+            <div class="field"><label>The script</label><textarea style="min-height:180px" placeholder="Paste or type it exactly how you want it said" oninput="D('sc_body',this.value)">${dv('sc_body')}</textarea></div>
+            <button class="btn btn-red" onclick="saveScript()">${editScript?'Save changes':'Add script'}</button>${editScript?` <button class="btn" onclick="editScript=null;delete draft.sc_title;delete draft.sc_body;render()">Cancel</button>`:''}</div>`;
+    }
+    h+=list.length?list.map(([id,x])=>`<div class="nh-week ${openWeeks['s'+id]?'open':''}"><div class="nh-week-h" onclick="openWeeks['s${id}']=!${!!openWeeks['s'+id]};render()"><div class="nh-week-n">${esc(x.title||'Untitled')}</div><div style="color:var(--muted);font-size:12px">${openWeeks['s'+id]?'▴':'▾'}</div></div>
+        <div class="nh-week-b"><div class="nh-script">${esc(x.body||'')}</div>${isMgr()?`<div style="margin:10px 0 6px;display:flex;gap:8px"><button class="nh-mini" onclick="startEditScript('${id}')">Edit</button><button class="nh-mini" onclick="delScript('${id}')">Delete</button></div>`:''}</div></div>`).join('')
+        :`<div class="card"><p class="nh-sub" style="margin:0">${isMgr()?'No scripts yet. Add the Perfect Service Call, the introduction, the agenda and your word tracks above.':'Your manager has not added the scripts yet. Ask your trainer for the Perfect Service Call in the meantime.'}</p></div>`;
+    return h;
+}
+function saveScript(){if(!isMgr())return;const t=(draft.sc_title||'').trim(),b=(draft.sc_body||'').trim();if(!t||!b){alertMsg('Give it a title and the script text.');return;}
+    if(editScript)db.ref('newHireConfig/scripts/'+editScript).update({title:t,body:b});else db.ref('newHireConfig/scripts').push({title:t,body:b,at:Date.now()});
+    editScript=null;delete draft.sc_title;delete draft.sc_body;render();}
+function startEditScript(id){const x=(cfg.scripts||{})[id];if(!x)return;editScript=id;draft.sc_title=x.title||'';draft.sc_body=x.body||'';render();window.scrollTo({top:0});}
+function delScript(id){if(isMgr())db.ref('newHireConfig/scripts/'+id).remove();}
+
+/* ── WELCOME: expectations, 30-60-90 goals, who to know, dispatch, uniforms ── */
 function vWelcome(){
-    const dow=new Date().getDay(),tk=track();
+    const dow=new Date().getDay(),tk=track(),dn=dayNum(data),g=data.goals||{};
     let h=`<div class="nh-hero"><div class="nh-eyebrow">Welcome to the team</div><div class="nh-big">Your first <em>six weeks</em></div>
         <div class="nh-sub">This page is your program. Three habits make it work: do the <b style="color:var(--text)">morning checklist</b> before your first call, fill in your <b style="color:var(--text)">daily log</b> before you go home, and check off your <b style="color:var(--text)">training plan</b> as your trainer signs you off on each skill.</div></div>`;
     h+=enrollCard(!tk);
+    if(tk){
+        const d=dn===null?0:Math.max(0,Math.min(90,dn));
+        h+=`<div class="card"><div class="sec-label">Your 30 · 60 · 90 day goals</div>
+            <div class="nh-eyebrow" style="font-size:12px">${dn===null?'':dn<1?'Starts '+nice(data.profile.startDate):dn>90?'Past day 90':'Day '+dn+' of 90'}</div>
+            <div class="nh-bar ${dn>90?'ok':''}" style="margin:8px 0 14px"><div style="width:${Math.round(d/90*100)}%"></div></div>
+            ${[['d30','First 30 days',30],['d60','By day 60',60],['d90','By day 90',90]].map(x=>`<div class="nh-exp" style="${dn>x[2]-30&&dn<=x[2]?'':'border-left-color:var(--wire2)'}"><h3>${x[1]}${dn>x[2]-30&&dn<=x[2]?'<span style="color:var(--red)">You are here</span>':''}</h3>
+                ${isMgr()?`<textarea style="margin-top:8px" placeholder="What should they be able to do by day ${x[2]}?" onchange="setGoal('${x[0]}',this.value)">${esc(g[x[0]]||'')}</textarea>`:`<div class="nh-script" style="margin-top:6px">${g[x[0]]?esc(g[x[0]]):'<span style="color:var(--muted)">Your manager has not written this one yet.</span>'}</div>`}</div>`).join('')}
+            ${isMgr()?'<p class="nh-sub" style="margin:0">These save when you tap out of each box. Only this person sees them.</p>':''}</div>`;
+    }
+    const cl=Object.entries(contacts).sort((a,b)=>(a[1].at||0)-(b[1].at||0));
+    h+=`<div class="card"><div class="sec-label">Who you need to know</div>${cl.length?cl.map(([id,c])=>{const tel=String(c.phone||'').replace(/[^0-9+]/g,'');
+        return `<div class="nh-contact"><div style="min-width:0;flex:1"><div class="nh-log-date">${esc(c.name)}</div><div class="nh-log-nums" style="white-space:normal">${esc(c.role||'')}${c.phone?' · '+esc(c.phone):''}</div></div>
+            ${tel?`<a class="nh-mini red" href="tel:${tel}">Call</a><a class="nh-mini" href="sms:${tel}">Text</a>`:''}${isMgr()?`<button class="nh-mini" onclick="delContact('${id}')">✕</button>`:''}</div>`;}).join('')
+        :`<p class="nh-sub" style="margin:0 0 10px">${isMgr()?'Nobody listed yet. Add the trainer, managers, dispatchers and install managers below.':'Your manager has not added the contact list yet. Get numbers for your trainer, the dispatchers and the managers.'}</p>`}
+        ${isMgr()?`<div class="nh-g3 nh-en" style="margin-top:14px"><div class="field"><label>Name</label><input type="text" value="${dv('ct_name')}" oninput="D('ct_name',this.value)"></div><div class="field"><label>Who they are</label><input type="text" placeholder="e.g. Dispatcher, Install manager" value="${dv('ct_role')}" oninput="D('ct_role',this.value)"></div><div class="field"><label>Cell number</label><input type="text" inputmode="tel" value="${dv('ct_phone')}" oninput="D('ct_phone',this.value)"></div></div><button class="btn btn-red" onclick="addContact()">Add contact</button><p class="nh-sub" style="margin-top:10px">This list is for this location only.</p>`:''}</div>`;
     h+='<div class="card"><div class="sec-label">What we expect</div>'+EXPECT.map(x=>`<div class="nh-exp"><h3>${x[0]}<span>${x[1]}</span></h3><ul>${x[2].map(li=>`<li>${esc(li)}</li>`).join('')}</ul></div>`).join('')+'</div>';
     h+=`<div class="card"><div class="sec-label">Dispatching out of a call</div><p class="nh-sub" style="margin:0 0 10px">Every time you finish a call, call or text the dispatch number and tell the office:</p>
         <div class="nh-exp"><ul style="margin-top:0">${DISPATCH.map(li=>`<li>${esc(li)}</li>`).join('')}</ul></div><p class="nh-sub" style="margin:0">Your trainer will give you the dispatch number.</p></div>`;
@@ -382,33 +512,49 @@ function vWelcome(){
         <p class="nh-sub" style="margin-top:12px">Be on time to every meeting, in uniform and ready to work.</p></div>`;
     return h;
 }
+function setGoal(k,v){if(isMgr())db.ref(`${base()}/goals/${k}`).set(v.trim()||null);}
+function addContact(){if(!isMgr())return;const n=(draft.ct_name||'').trim();if(!n){alertMsg('Add a name first.');return;}db.ref('newHireContacts').push({name:n,role:(draft.ct_role||'').trim(),phone:(draft.ct_phone||'').trim(),at:Date.now()});['ct_name','ct_role','ct_phone'].forEach(k=>delete draft[k]);render();}
+function delContact(id){if(isMgr())db.ref('newHireContacts/'+id).remove();}
 
-/* ── MANAGER ── */
-function loadAll(){if(!isMgr)return;db.ref('newHire').once('value').then(s=>{allNH=s.val()||{};if(tab==='mgr')render();});}
+/* ── MANAGER / TRAINER ── */
+function loadAll(){if(!canSign())return;db.ref('newHire').once('value').then(s=>{allNH=s.val()||{};if(tab==='mgr')render();});}
 function vMgr(){
-    if(!isMgr)return `<div class="card"><div class="sec-label">Manager view</div><p class="nh-sub" style="margin:0 0 14px">Enter the manager PIN to see every new hire's checklist, logs and training progress.</p>
-        <div class="field"><label>Manager PIN</label><input type="password" id="nhPin" inputmode="numeric" autocomplete="off" onkeydown="if(event.key==='Enter')mgrUnlock()"></div><div id="nhPinMsg" class="bad" style="font-size:13px;margin-bottom:10px"></div><button class="btn btn-red" onclick="mgrUnlock()">Unlock</button></div>`;
+    if(!canSign())return `<div class="card"><div class="sec-label">Manager and trainer view</div><p class="nh-sub" style="margin:0 0 14px">Enter the manager PIN or the trainer PIN to see every new hire, sign off training items and write check-ins.</p>
+        <div class="field"><label>PIN</label><input type="password" id="nhPin" inputmode="numeric" autocomplete="off" onkeydown="if(event.key==='Enter')mgrUnlock()"></div><div id="nhPinMsg" class="bad" style="font-size:13px;margin-bottom:10px">${esc(draft.pinMsg||'')}</div><button class="btn btn-red" onclick="mgrUnlock()">Unlock</button></div>`;
     if(allNH===null)return '<div class="card"><p class="nh-sub" style="margin:0">Loading…</p></div>';
-    const t=today(),rows=Object.keys(allNH).filter(id=>people[id]&&allNH[id].profile&&TRACKS[allNH[id].profile.track]).map(id=>{
-        const d=allNH[id],tk=d.profile.track,day=(d.checklist&&d.checklist[t])||{},w=last7(d),lk=Object.keys(d.log||{}).sort().pop();
-        return {id,name:people[id].name,tk,wk:weekNow(d),pct:trainingPct(d,tk),cn:checkCount(day),doneAt:day._doneAt,last:lk,w,st:streak(d)};
+    const t=today(),all=Object.keys(allNH).filter(id=>people[id]&&allNH[id].profile&&TRACKS[allNH[id].profile.track]).map(id=>{
+        const d=allNH[id],tk=d.profile.track,day=(d.checklist&&d.checklist[t])||{},w=last7(d),lk=Object.keys(d.log||{}).sort().pop(),c=counts(d,tk);
+        return {id,name:people[id].name,tk,wk:weekNow(d),c,cn:checkCount(day),doneAt:day._doneAt,last:lk,w,st:streak(d),ci:lastCheckin(d),g:grad(d)};
     }).sort((a,b)=>(a.name<b.name?-1:1));
+    const rows=all.filter(r=>!r.g),grads=all.filter(r=>r.g),old=k=>k<dk(new Date(Date.now()-7*864e5));
     let h=`<div class="card"><div class="sec-label">New hires at this location <span style="color:var(--text)">${rows.length}</span></div>`;
-    h+=rows.length?`<div class="nh-scroll"><table class="nh-tbl"><tr><th>Name</th><th>Role</th><th>Week</th><th>Training</th><th>Checklist today</th><th>Streak</th><th>Last log</th><th>7-day reviews</th><th>7-day doors</th></tr>${rows.map(r=>{
+    h+=rows.length?`<div class="nh-scroll"><table class="nh-tbl"><tr><th>Name</th><th>Role</th><th>Week</th><th>Signed off</th><th>Learned</th><th>Checklist today</th><th>Streak</th><th>Last log</th><th>Last check-in</th><th>7-day reviews</th><th>7-day doors</th></tr>${rows.map(r=>{
         const cl=r.doneAt?`<span class="ok">✓ ${new Date(r.doneAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</span>`:`<span class="${r.cn?'warn':'bad'}">${r.cn} / ${CHECKLIST.length}</span>`;
         const ll=r.last?(r.last===t?'<span class="ok">Today</span>':`<span class="${r.last<dk(new Date(Date.now()-2*864e5))?'bad':'warn'}">${nice(r.last)}</span>`):'<span class="bad">Never</span>';
-        return `<tr class="row" onclick="viewPerson('${r.id}')"><td><b>${esc(r.name)}</b></td><td>${esc(TRACKS[r.tk].name)}</td><td>${r.wk||'—'}</td><td>${r.pct}%</td><td>${cl}</td><td>${r.st}</td><td>${ll}</td><td>${r.w.r}</td><td>${r.w.dr}</td></tr>`;}).join('')}</table></div><p class="nh-sub" style="margin-top:12px">Tap a name to open their checklist, logs and training plan.</p>`
-        :'<p class="nh-sub" style="margin:0">Nobody at this location has started a program yet.</p>';
+        const ci=r.ci?`<span class="${old(r.ci)?'warn':'ok'}">${nice(r.ci)}</span>`:'<span class="bad">None</span>';
+        return `<tr class="row" onclick="viewPerson('${r.id}')"><td><b>${esc(r.name)}</b></td><td>${esc(TRACKS[r.tk].name)}</td><td>${r.wk||'—'}</td><td><b>${pct(r.c.signed,r.c.total)}%</b></td><td>${pct(r.c.learned,r.c.total)}%</td><td>${cl}</td><td>${r.st}</td><td>${ll}</td><td>${ci}</td><td>${r.w.r}</td><td>${r.w.dr}</td></tr>`;}).join('')}</table></div><p class="nh-sub" style="margin-top:12px">Tap a name to open their training plan, sign items off and write a check-in.</p>`
+        :'<p class="nh-sub" style="margin:0">Nobody at this location is in a program right now.</p>';
     h+='</div>';
-    const others=Object.keys(people).filter(id=>!(allNH[id]&&allNH[id].profile&&allNH[id].profile.track)).sort((a,b)=>people[a].name<people[b].name?-1:1);
-    h+=`<div class="card"><div class="sec-label">Enroll someone</div><div class="nh-g3 nh-en"><div class="field"><label>Rep</label><select id="mgPerson">${others.map(id=>`<option value="${id}">${esc(people[id].name)}</option>`).join('')}</select></div>
-        <div class="field"><label>Role</label><select id="mgTrack">${Object.keys(TRACKS).map(k=>`<option value="${k}">${TRACKS[k].name}</option>`).join('')}</select></div>
-        <div class="field"><label>First day</label><input type="date" id="mgStart" value="${t}"></div></div><button class="btn btn-red" onclick="mgrEnroll()">Enroll</button>
-        <p class="nh-sub" style="margin-top:12px">New hires can also enroll themselves the first time they open this page. The rep has to be added in the Manager portal first.</p></div>`;
+    if(grads.length)h+=`<div class="card"><div class="sec-label">Graduated <span style="color:var(--text)">${grads.length}</span></div>${grads.map(r=>`<div class="nh-contact" style="cursor:pointer" onclick="viewPerson('${r.id}')"><div style="flex:1"><div class="nh-log-date">🎓 ${esc(r.name)}</div><div class="nh-log-nums">${esc(TRACKS[r.tk].name)} · graduated ${niceTs(r.g)}</div></div></div>`).join('')}</div>`;
+    if(isMgr()){
+        const others=Object.keys(people).filter(id=>!(allNH[id]&&allNH[id].profile&&allNH[id].profile.track)).sort((a,b)=>people[a].name<people[b].name?-1:1);
+        h+=`<div class="card"><div class="sec-label">Enroll someone</div><div class="nh-g3 nh-en"><div class="field"><label>Rep</label><select id="mgPerson">${others.map(id=>`<option value="${id}">${esc(people[id].name)}</option>`).join('')}</select></div>
+            <div class="field"><label>Role</label><select id="mgTrack">${Object.keys(TRACKS).map(k=>`<option value="${k}">${TRACKS[k].name}</option>`).join('')}</select></div>
+            <div class="field"><label>First day</label><input type="date" id="mgStart" value="${t}"></div></div><button class="btn btn-red" onclick="mgrEnroll()">Enroll</button>
+            <p class="nh-sub" style="margin-top:12px">New hires can also enroll themselves the first time they open this page. The rep has to be added in the Manager portal first.</p></div>`;
+        h+=`<div class="card"><div class="sec-label">Trainer PIN</div><p class="nh-sub" style="margin:0 0 12px">Give trainers this PIN instead of the manager PIN. It lets them see this table, sign off training items, record week tests and write check-ins. It does not let them enroll, graduate, or edit goals, contacts, scripts or videos.</p>
+            <div class="nh-g2"><div class="field"><label>Trainer PIN</label><input type="text" inputmode="numeric" id="nhTrainerPin" value="${esc(cfg.trainerPin||'')}" placeholder="Not set"></div><div class="field"><label>&nbsp;</label><button class="btn btn-red" onclick="saveTrainerPin()">Save PIN</button></div></div></div>`;
+    }
+    h+=`<div class="card"><button class="btn" onclick="lockView()">Lock ${isMgr()?'manager':'trainer'} view</button></div>`;
     return h;
 }
-function mgrUnlock(){const v=$('nhPin').value.trim();db.ref('managerPin').once('value').then(s=>{if(v&&String(s.val())===v){isMgr=true;sessionStorage.setItem('nhMgr','1');loadAll();render();}else{$('nhPinMsg').textContent='That PIN is not right.';}});}
-function mgrEnroll(){const id=$('mgPerson').value;if(!id)return;db.ref(`newHire/${id}/profile`).update({track:$('mgTrack').value,startDate:$('mgStart').value||today()}).then(loadAll);}
+/* a function, not inline code: inside an inline onclick, a bare `role` means the button's own ARIA role property */
+function lockView(){role='';sessionStorage.removeItem('nhRole');viewPerson(me);tab='today';render();}
+function mgrUnlock(){const v=$('nhPin').value.trim();if(!v)return;db.ref('managerPin').once('value').then(s=>{
+    if(String(s.val())===v)role='mgr';else if(cfg.trainerPin&&String(cfg.trainerPin)===v)role='trainer';
+    if(role){delete draft.pinMsg;sessionStorage.setItem('nhRole',role);loadAll();render();}else{draft.pinMsg='That PIN is not right.';render();}});}
+function mgrEnroll(){if(!isMgr())return;const id=$('mgPerson').value;if(!id)return;db.ref(`newHire/${id}/profile`).update({track:$('mgTrack').value,startDate:$('mgStart').value||today()}).then(loadAll);}
+function saveTrainerPin(){if(!isMgr())return;const v=$('nhTrainerPin').value.trim();db.ref('newHireConfig/trainerPin').set(v||null).then(()=>alertMsg(v?'Trainer PIN saved.':'Trainer PIN removed.'));}
 
 /* roll the checklist over if the app sits open past midnight */
 let _day=today();setInterval(()=>{if(today()!==_day){_day=today();if(!typing())render();}},60000);
