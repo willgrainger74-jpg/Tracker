@@ -125,6 +125,13 @@
         .nh-test{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 4px 8px;font-size:13px;border-top:1px solid var(--wire);margin-top:6px}
         .nh-test-btns{display:flex;gap:6px;margin-left:auto}
         .nh-script{white-space:pre-wrap;font-size:14.5px;line-height:1.6}
+        .nh-q{padding:14px 0;border-bottom:1px solid var(--wire)}
+        .nh-q-t{font-family:'Oswald',sans-serif;font-size:15.5px;font-weight:600;letter-spacing:.03em;margin-bottom:10px;line-height:1.35}
+        .nh-q-o{display:block;width:100%;text-align:left;background:var(--s2);border:1px solid var(--wire);color:var(--text);border-radius:10px;padding:12px 14px;margin-bottom:6px;font-family:'Inter',sans-serif;font-size:14.5px;cursor:pointer;line-height:1.4}
+        .nh-q-o.pick{border-color:var(--red);background:color-mix(in srgb,var(--red) 14%,transparent)}
+        .nh-q-o.right{border-color:#22c55e;background:rgba(34,197,94,.12)}
+        .nh-q-o.wrong{border-color:var(--red);background:color-mix(in srgb,var(--red) 14%,transparent);text-decoration:line-through;opacity:.8}
+        .nh-q-why{font-size:13px;margin-top:6px;line-height:1.45}
         .nh-contact{display:flex;gap:8px;align-items:center;background:var(--s2);border:1px solid var(--wire);border-radius:12px;padding:12px 14px;margin-bottom:8px}
         @media(max-width:520px){.nh-g3{grid-template-columns:1fr 1fr 1fr;gap:8px}.nh-g3.nh-en{grid-template-columns:1fr}.nh-uni{grid-template-columns:1fr}}
 </style>
@@ -204,11 +211,11 @@ const UNIFORM = { 1:'Gray / Light Blue', 3:'Gray / Light Blue', 5:'Gray / Light 
 // Text after  ||  is a smaller explanation shown under the item (the saved check is keyed to the part before it).
 const TRACKS = {
   sales: { name:'Sales', weeks:[
-    ['Week 1', ['How to dispatch out of a call || When you finish a call, call or text the dispatch number and report: you are done; sold or not sold; if sold, how much and how you collected; if not sold, the reason why; whether you did door hangers, stickers and notes; and anything else the office needs to know.','Uniforms and schedule, and why they matter — Mon/Wed/Fri Gray/Light Blue, Tue/Thu/Sat Khakis/Dark Blue','Reviews — watch how to get a good review, then ask for one yourself','Introduction — learn it from the Perfect Service Call, then do it yourself','Agenda — learn it from the Perfect Service Call, then do it yourself','Flyers and stickers — knock doors for flyers, put stickers on every appliance in the house','Intro to your trainer','Meetings — know the time and the importance of being on time','Intro to the office — meet the dispatchers and get their phone numbers','Action / training shirts']],
+    ['Week 1', ['How to dispatch out of a call || When you finish a call, call or text the dispatch number and report: you are done; sold or not sold; if sold, how much and how you collected; if not sold, the reason why; whether you did door hangers, stickers and notes; and anything else the office needs to know.','Uniforms and schedule, and why they matter — Mon/Wed/Fri Gray/Light Blue, Tue/Thu/Sat Khakis/Dark Blue','Reviews — watch how to get a good review, then ask for one yourself','Introduction — learn it from the Perfect Service Call, then do it yourself || The script is on the Scripts tab: "At the door — introduction".','Agenda — learn it from the Perfect Service Call, then do it yourself || The script is on the Scripts tab: "Setting the agenda". Time, permission to present, decision maker.','Flyers and stickers — knock doors for flyers, put stickers on every appliance in the house','Intro to your trainer','Meetings — know the time and the importance of being on time','Intro to the office — meet the dispatchers and get their phone numbers','Action / training shirts']],
     ['Week 2', ['GroupMe and turnovers','Get cell numbers for install managers and other managers','*Pics and notes in ServiceTitan','Turn-ins']],
     ['Week 3', ['ServiceTitan — writing up estimates','Discovery','Gas, gas number, vehicle etiquette and maintenance','Divvy','Call debrief with the office']],
-    ['Week 4', ['iPad','*Financing','Salesman number spreadsheet','Perfect Service Call — know it, have your notes','Presentation','Commission and bonus structure','Manager phone calls','Membership sales and conversation','Test call']],
-    ['Week 5', ['Tools','Objections','Commercial accounts']],
+    ['Week 4', ['iPad','*Financing','Salesman number spreadsheet','Perfect Service Call — know it, have your notes || All 9 steps and the quiz are on the Scripts tab.','Presentation','Commission and bonus structure','Manager phone calls','Membership sales and conversation','Test call']],
+    ['Week 5', ['Tools','Objections || Three responses to each objection are on the Scripts tab.','Commercial accounts']],
     ['Week 6', ['Role play word tracks until they are memorized','Test days']],
     ['Objection Handling — 3 responses to each', ['"I need to think about it"','"I want to get a second opinion"','"I don\'t want to do the project now"','"I need to talk with my spouse"','"I already have a guy"']]
   ]},
@@ -235,6 +242,419 @@ const TRACKS = {
     ['Week 6', ['Tub replacement','Shower replacement (tile / insert)']]
   ]}
 };
+
+// ───────────── SCRIPTS & STUDY MATERIAL ─────────────
+// Built-in scripts. g = group heading. A manager can edit or hide any of these on the
+// Scripts tab (the edit is saved in Firebase under the same id and wins over this text),
+// and "Reset" brings this original back. Scripts a manager adds on the page show under "Added by your manager".
+// Anything marked DRAFT was written from the Perfect Service Call as a starting point — reword it to how you say it.
+const SCRIPT_GROUPS = [['process','The Perfect Service Call'],['track','Word tracks — say these out loud'],['objection','Objections — 3 responses each'],['ref','Know these too']];
+const BUILTIN_SCRIPTS = [
+{ id:'psc_overview', g:'process', title:'The Action Sales Process — all 9 steps', body:`"Every call is an opportunity. Make it count!"
+
+1. Speed to the Lead
+2. The Introduction & Agenda
+3. Build Rapport
+4. Discovery & Diagnosis
+5. Presentation
+6. Close It & Find the Money
+7. Turnovers, Stickers, Reviews, Notes & Start the Job
+8. Check Out with the Customer
+9. Door Knock & Call the Office
+
+Every step matters. Every call counts. Every customer deserves your best version. When you follow this process you are not just selling, you are building lifelong Action fans.
+
+Be a servant, not a seller.` },
+{ id:'psc_1', g:'process', title:'Step 1 — Speed to the Lead', body:`Before you leave
+• Vehicle clean and properly maintained
+• Focus on your attitude. Get your mind right and set your goals
+• Have urgency leaving the office
+• Listen to the call recording
+• On a returning customer, talk to the last tech who was out there
+
+When you arrive
+• Arrive fast and on time
+• Park on the street in front of the house, on the correct side
+• Hat forward, shirt tucked in
+• Bring booties and your iPad to the front door
+
+Your professionalism starts the moment the customer sees your truck pull up.
+First impressions = trust earned.` },
+{ id:'psc_2', g:'process', title:'Step 2 — The Introduction & Agenda', body:`Knock, then start putting your booties on.
+
+"Hi, I'm [your name] with Action Plumbing. I'm here to fix your problems."
+Introduce your partner if you have one.
+
+Introduction questions
+• Is where I parked okay?
+• How old is the home?
+• How long have you owned the home?
+• How long has this been happening?
+• Who found the problem?
+
+Set the agenda — three things, every time
+• TIME: "Our typical visit takes between 30 and 45 minutes to get everything figured out. Do you have time for our visit today?"
+• PERMISSION TO PRESENT: "After we get everything figured out, is it okay if we sit down and go over it?"
+• DECISION MAKER: "Who all lives in the home?"
+
+Greet them with confidence and warmth. Set clear expectations so the customer knows they are in great hands.` },
+{ id:'psc_3', g:'process', title:'Step 3 — Build Rapport', body:`Take a minute to connect before you touch a wrench.
+
+• Compliment the home
+• Pet the dog
+• Talk about something genuine
+• If they have something displayed on the wall, they are proud of it. Ask about it!
+
+People buy from people they LIKE. Win their trust first.` },
+{ id:'psc_4', g:'process', title:'Step 4 — Discovery & Diagnosis', body:`Find the pain point. Listen, observe, and dig deep.
+
+Time
+• Never go longer than 10 minutes without checking in with the customer
+
+What you do
+• Pull things apart
+• Test everything
+• Look at the ENTIRE plumbing system
+• Point out other issues you see, and hold them in reserve for later
+
+Questions — P.I.E.
+• PROBLEM: How long has this been happening?
+• IMPACT: How does this problem impact you?
+• EMOTION: How does that make you feel?
+• How often does this happen?
+• What have you done about it in the past?
+
+Before you price anything, find out
+• Their expectations: what do they think they want done?
+• How they want to pay
+• Their timeframe
+
+Educate the customer
+• Show them the 3 or 4 problems that led to your solution
+• The car analogy: this is wrong, this is wrong, this is wrong, so it needs a new one
+• Go over what is wrong and your solutions WITHOUT price
+
+Then: CALL YOUR MANAGER FOR PRICING.
+
+Uncover the root issue and find the other ways to protect their home. Be the professional they did not know they needed.` },
+{ id:'psc_5', g:'process', title:'Step 5 — Presentation', body:`Where: at the dinner table.
+
+What you are doing
+• Writing up multiple options while you talk with the customer
+• At least 2 estimates, usually 3
+• Never one estimate for "everything". Write separate estimates for different parts of the project
+• Go over the estimate 3 times before you give a price
+
+Explain
+• What needs to happen
+• What to expect
+• When we can get it done
+• Payment, and financing if it is needed
+Then have them decide which option they want, and build urgency.
+
+Know these four things BEFORE you give a price
+1. Their time frame
+2. How they pay
+3. Their expectations for the project
+4. That they agree with the diagnosis
+
+Wait until the customer says one of these, THEN give the price
+• "How much is this going to cost?"
+• "When can you get it done?"
+• "We have no other options, we have to do it."
+
+Show them the solution, not just the problem. Use visuals, clear explanations and confidence:
+"Here's what's happening, and here's how we fix it the RIGHT way."
+
+Make it easy for them to say YES.
+
+Manager phone call before you ever leave with a no.` },
+{ id:'psc_6', g:'process', title:'Step 6 — Close It & Find the Money', body:`The solution is valuable. Do not be afraid to close.
+
+Ask for the sale
+• "Do you have any questions before we get this scheduled and collect payment?"
+• "Can we take care of this problem for you today?"
+• "Can we get this scheduled?"
+
+When you get the yes
+• Put the iPad in front of the customer to sign
+• Collect payment
+• Walk them through financing, payment options, or doing it in phases
+
+Then bring up what else you found in discovery
+• "In a perfect world we should also..."
+• "Hey, we also saw this. Can we take care of that too?"
+
+Be bold, be confident. Help them invest in peace of mind.` },
+{ id:'psc_7', g:'process', title:'Step 7 — Turnovers, Stickers, Reviews, Notes & Start the Job', body:`Once it is sold
+• Set up the installers. Send the job notes and any special requests
+• Start the project
+• Send over turnovers
+• Place your stickers
+• Get the 5-star review
+• Fill out complete job notes
+• Get to work like a pro
+
+Go over the cancellation process
+"I've already ordered parts and scheduled your project. If you decide for any reason that you don't want to go ahead, you will have to pay a cancellation fee."
+
+Setting up a good turnover
+• Set expectations: this starts in your intro, with what a turnover is
+• Create urgency: "We need to get someone out here. This is a problem."
+• Tell them what the problem is
+• Tell them who is coming out: the Solver
+• Tell them when (the timeframe)
+• Tell them there is a cost to it
+• Checkout expectations: what to expect when you are not there
+
+Be a servant, not a seller.` },
+{ id:'psc_8', g:'process', title:'Step 8 — Check Out with the Customer', body:`• Set expectations
+• Walk them through everything that was completed
+• Go over time frames and schedule again
+• Show them the cleaned-up work area. Show pride in your work
+• Answer questions and confirm they are satisfied
+• Always say goodbye to the customer before you leave
+
+Leave them smiling.` },
+{ id:'psc_9', g:'process', title:'Step 9 — Door Knock & Call the Office', body:`Never end the call without planting the next seed.
+
+Knock the neighbors' doors — 3 doors minimum
+"We just helped your neighbor out with [issue], and noticed you might benefit from a quick check too."
+
+Then
+• Call the office (dispatch out)
+• Update the sales tracker. Know where you are on the week
+• Call the office for your next win. Keep the pipeline flowing
+
+"When performance is measured, performance improves. When performance is measured and reported back, the rate of improvement accelerates." — Thomas Monson` },
+
+{ id:'wt_intro', g:'track', title:'At the door — introduction', body:`(Knock. Step back. Start putting your booties on.)
+
+"Hi, I'm [your name] with Action Plumbing. I'm here to fix your problems."
+
+"This is [partner's name], he'll be working with me today."
+
+"Before we get started, is where I parked okay?"
+
+(As you walk in)
+"This is a great home. How old is it?"
+"How long have you owned it?"
+"So tell me what's going on. How long has this been happening?"
+"Who found the problem?"` },
+{ id:'wt_agenda', g:'track', title:'Setting the agenda', body:`"Before I take a look, let me tell you how today works."
+
+TIME
+"Our typical visit takes between 30 and 45 minutes to get everything figured out. Do you have time for our visit today?"
+
+PERMISSION TO PRESENT
+"After we get everything figured out, is it okay if we sit down and go over it together?"
+
+DECISION MAKER
+"Who all lives in the home?"
+(DRAFT follow-up) "Great. Is there anyone else who would want to be part of deciding what we do today?"` },
+{ id:'wt_discovery', g:'track', title:'Discovery questions — P.I.E.', body:`PROBLEM
+"How long has this been happening?"
+"How often does it happen?"
+"What have you done about it in the past?"
+
+IMPACT
+"How is this affecting you day to day?"
+
+EMOTION
+"How does that make you feel?"
+
+EXPECTATIONS
+"What were you hoping we could do for you today?"
+"If we find what's causing it, when would you want it taken care of?"
+"When we get to a solution, how would you want to handle payment?"
+
+CHECK IN (at least every 10 minutes)
+"I want to show you what I'm finding so far. Do you have a second to come take a look?"` },
+{ id:'wt_present', g:'track', title:'Presenting the options and giving the price', body:`(At the dinner table. Write the options up while you talk.)
+
+"Here's what's happening, and here's how we fix it the RIGHT way."
+
+"I found a few things. Let me show you each one." (3 or 4 problems that led to your solution, with pictures)
+
+"I've put together a few options for you."
+"Option one takes care of [the urgent problem]."
+"Option two takes care of that and [the next issue]."
+"Option three is what I'd do if this were my home: [the full solution]."
+
+(Go over the options three times before any price.)
+
+"Does that all make sense? Do you agree that's what's going on?"
+
+(WAIT for: "How much is this going to cost?" / "When can you get it done?" / "We have to do it.")
+
+"Here's the investment for each option. Which one makes the most sense for you?"` },
+{ id:'wt_close', g:'track', title:'Asking for the sale', body:`Pick one and ask it. Then stop talking.
+
+"Do you have any questions before we get this scheduled and collect payment?"
+
+"Can we take care of this problem for you today?"
+
+"Can we get this scheduled?"
+
+(When they say yes: iPad in front of the customer to sign, then collect payment.)
+
+If the money is the question
+"We have financing and payment options. Want me to see what that would look like for you?"
+"We can also do this in phases and start with the most urgent part."
+
+Then bring up the rest
+"In a perfect world we should also take care of [issue]."
+"Hey, we also saw [issue]. Can we take care of that too while we're here?"` },
+{ id:'wt_turnover', g:'track', title:'Setting up a turnover', body:`(DRAFT wording, built from your turnover checklist.)
+
+In the intro
+"If I find something outside of what I do, I'll bring out one of our specialists so you get the right answer."
+
+When you find it
+"We need to get someone out here. This is a problem."
+"What I'm seeing is [the problem]."
+"I'm going to have [name], our [specialist], come out. He's the one who solves these."
+"He can be here [timeframe]."
+"There is a cost for [what it costs], and here's what that covers."
+"While he's here I may be on another call. Here's what to expect: [what happens next]."` },
+{ id:'wt_cancel', g:'track', title:'The cancellation conversation', body:`"I've already ordered parts and scheduled your project. If you decide for any reason that you don't want to go ahead, you will have to pay a cancellation fee."` },
+{ id:'wt_checkout', g:'track', title:'Checking out with the customer', body:`(DRAFT wording.)
+
+"Let me walk you through everything we did today."
+"Come take a look at the work area. I want to make sure it's cleaner than I found it."
+"Here's what happens next and when: [time frames / next appointment]."
+"What questions do you have for me?"
+"Is there anything else in the home you'd like me to look at before I go?"
+"Thank you for having us out. It was great meeting you."
+
+Always say goodbye before you leave.` },
+{ id:'wt_review', g:'track', title:'Asking for the 5-star review', body:`(DRAFT wording.)
+
+"If I earned it today, would you do me a favor and leave me a 5-star review? It really helps me and my family."
+
+"I can pull it up right here, it takes about a minute."
+
+"If you mention my name, [your name], the office knows it was me."
+
+(Do it with them, before you leave. Ask for a picture review when you can.)` },
+{ id:'wt_door', g:'track', title:'Door knock — 3 doors minimum', body:`"Hi, I'm [your name] with Action Plumbing. We just helped your neighbor out with [issue], and noticed you might benefit from a quick check too."
+
+(DRAFT follow-up)
+"How old is your [water heater / furnace / main line]?"
+"I'm right next door today. Would it help if I took a quick look while I'm here?"
+"No problem at all. Here's our info in case anything comes up."
+
+Leave a door hanger either way.` },
+{ id:'wt_dispatch', g:'track', title:'Dispatching out to the office', body:`Call or text the dispatch number every time you finish a call.
+
+SOLD
+"This is [your name]. I'm done at [customer]. Sold [what] for $[amount], collected by [card / check / cash / financing]. Door hangers, stickers and notes are done. [Anything else the office needs to know.]"
+
+NOT SOLD
+"This is [your name]. I'm done at [customer]. Did not sell. The reason: [why]. Follow-up is set for [date]. Door hangers, stickers and notes are done."` },
+
+{ id:'ob_think', g:'objection', title:'"I need to think about it"', body:`(DRAFT — reword these to how you say them. Manager phone call before you leave with a no.)
+
+1. Find the real question
+"Totally fair, it's a big decision. So I can make sure you have what you need: what part are you still thinking through? The fix itself, the timing, or the price?"
+
+2. Narrow it to three
+"A lot of people feel that way. It usually comes down to one of three things: is this the right fix, are we the right company, or is it the right price. Which one is it for you?"
+
+3. Go back to the options
+"No problem. Before I go, can I walk you through the options one more time? If the full repair isn't right today, there may be a smaller step that takes care of the urgent part."` },
+{ id:'ob_second', g:'objection', title:'"I want to get a second opinion"', body:`(DRAFT — reword these to how you say them.)
+
+1. Show them again
+"You should feel sure about this. What would you want a second opinion to confirm, the diagnosis or the price? Let me show you again exactly what I found so you can see it for yourself."
+
+2. Bring in your manager
+"That makes sense. Would it help to get a second set of eyes right now? I can get my manager on the phone and he can go over the diagnosis and the price with you."
+
+3. Help them compare fairly
+"When you compare, make sure they're quoting the same job: the same materials, permits, warranty and clean-up. Here's everything ours includes, in writing, so you can compare apples to apples."` },
+{ id:'ob_notnow', g:'objection', title:'"I don\'t want to do the project now"', body:`(DRAFT — reword these to how you say them.)
+
+1. Find out why
+"I understand. Help me understand the timing. Is it the budget, the schedule, or does it just not feel urgent yet?"
+
+2. Be straight about waiting
+"Here's what I'd watch for if it waits: [the specific risk you found]. I'd rather you know that going in. Would it help to take care of just the urgent part today and schedule the rest?"
+
+3. Find the money
+"If it's the cost, we have financing and payment options that spread it out. Want me to see what the monthly payment would look like?"
+
+If it is still a no: set the follow-up date and reason on the call in the tracker.` },
+{ id:'ob_spouse', g:'objection', title:'"I need to talk with my spouse"', body:`(DRAFT — reword these to how you say them. This is why you ask about the decision maker in the agenda.)
+
+1. Get them on the phone
+"Of course, it's a decision for both of you. Are they available by phone right now? I'm happy to walk you both through it so you don't have to explain it secondhand."
+
+2. Arm them with answers
+"What do you think they'll want to know? Let's make sure you have it: the pictures, the options, and the price in writing."
+
+3. Set the follow-up
+"When will you two get to talk? I'll check back with you [day]. And if it's easier, I can come back when you're both home."
+
+Set that follow-up date on the call in the tracker.` },
+{ id:'ob_guy', g:'objection', title:'"I already have a guy"', body:`(DRAFT — reword these to how you say them.)
+
+1. Give them something to compare
+"That's great, a good plumber is hard to find. Since I'm already here and have it diagnosed, would it help to have our price in writing so you have something to compare?"
+
+2. Ask what they like
+"No problem at all. What do you like about working with him?" (Listen.) "Here's what we do a little differently: [what makes Action different]."
+
+3. Be the backup
+"Totally understand. If he can't get to it soon, we can have it done by [timeframe]. Can I leave our info and check back in a few days?"` },
+
+{ id:'ref_5star', g:'ref', title:'How to deliver 5-star service', body:`• Answer the phone friendly and helpful when they call
+• Speed to the lead: arrive on time, and ask if you are parked in a good spot
+• Booties: show the customer that you care
+• Learn the customer's name
+• Build rapport: get to know them, pet the dog, ask about the family and hobbies. People buy from people they like
+• Great explanation: educate them, help them understand the options, earn their business
+• Ask for the sale: care enough about them to ask
+• Clean up after ourselves: wipe up the area, sweep, pick up our trash, put the rugs back, offer to put dirty towels in the washer, take the old furnace filter with us. Leave the area looking way better than we found it
+• Explain the membership and offer additional service: look around and find other potential problems so the customer is not facing a disaster later
+
+5-star service means taking care of ALL of the customer's needs in their home.` },
+{ id:'ref_calls', g:'ref', title:'How do we get more calls?', body:`• Door knocks
+• Memberships and outbounds
+• Turnovers
+• Good reviews` },
+{ id:'ref_routine', g:'ref', title:'Before the first call — your routine', body:`The night before
+• Have a nightly routine. What is yours?
+
+The morning of
+• Wake up on time
+• Work out
+• Get to work on time
+
+First call
+• Have urgency leaving the office
+• Listen to the call recording
+• Talk to the last tech out on a returning customer` }
+];
+
+// ───────────── PERFECT SERVICE CALL QUIZ ─────────────
+// Every answer comes straight from the Perfect Service Call above. a = index of the right option.
+const PSC_QUIZ = [
+  { q:'What do you bring to the front door?', o:['Your tool bag','Booties and your iPad','A price book','Nothing until you are invited in'], a:1, why:'Step 1: bring booties and iPad to the front door.' },
+  { q:'How long do you tell the customer a typical visit takes?', o:['10 to 15 minutes','30 to 45 minutes','About 2 hours','You never mention time'], a:1, why:'Step 2, setting the agenda: 30 to 45 minutes.' },
+  { q:'What are the three parts of setting the agenda?', o:['Price, warranty, schedule','Time, permission to present, decision maker','Problem, impact, emotion','Intro, rapport, close'], a:1, why:'Step 2: time, permission to present, decision maker.' },
+  { q:'In discovery, how long can you go without checking in with the customer?', o:['5 minutes','10 minutes','30 minutes','Until you are finished'], a:1, why:'Step 4: never longer than 10 minutes.' },
+  { q:'What does P.I.E. stand for?', o:['Price, Install, Estimate','Problem, Impact, Emotion','Present, Inspect, Explain','Plumbing, Insulation, Electrical'], a:1, why:'Step 4: Problem, Impact, Emotion.' },
+  { q:'You have finished discovery and gone over what is wrong. What comes next?', o:['Give the price','Call your manager for pricing','Leave an estimate on the counter','Start the work'], a:1, why:'Step 4: call your manager for pricing.' },
+  { q:'Where do you present?', o:['At the front door','Next to the problem','At the dinner table','In the truck'], a:2, why:'Step 5: at the dinner table.' },
+  { q:'How many estimates should you write up?', o:['One for everything','At least 2, usually 3','Exactly 5','As few as possible'], a:1, why:'Step 5: at least 2 but usually 3, and never one estimate for "everything".' },
+  { q:'How many times do you go over the estimate before giving a price?', o:['Once','Twice','Three times','You give the price first'], a:2, why:'Step 5: go over the estimate 3 times before price.' },
+  { q:'When do you give the price?', o:['As soon as you sit down','After the customer asks what it costs, when it can be done, or says they have to do it','Only if they ask twice','Before discovery'], a:1, why:'Step 5: wait until the customer asks or says they have to do it, then give price.' },
+  { q:'Which of these do you need to know BEFORE giving a price?', o:['Their favorite team','Time frame, how they pay, their expectations, and that they agree with the diagnosis','Only how they pay','What the neighbors paid'], a:1, why:'Step 5: time frame, how they pay, expectations, agreement with the diagnosis.' },
+  { q:'What do you do before leaving with a no?', o:['Lower the price yourself','Manager phone call','Leave right away','Ask for a review'], a:1, why:'Step 5: manager phone call before leaving with a no.' },
+  { q:'When you get the yes, where should the iPad be?', o:['In the truck','In front of the customer to sign','On the charger','With your partner'], a:1, why:'Step 6: iPad in front of the customer to sign, then collect payment.' },
+  { q:'How many neighbor doors do you knock after the call?', o:['None','1','3 minimum','10'], a:2, why:'Step 9: 3 doors minimum.' }
+];
 
 // ───────────── WHAT WE EXPECT ─────────────
 const EXPECT = [
@@ -463,26 +883,69 @@ function saveCheckin(){
 }
 function delCheckin(id){if(isMgr())db.ref(`${base()}/checkins/${id}`).remove();}
 
-/* ── SCRIPTS to memorize (written by the manager, shared by every location) ── */
+/* ── SCRIPTS: built-in Perfect Service Call + word tracks + objections, manager edits/additions, and the quiz ── */
+function scriptList(){
+    const ov=cfg.scripts||{},ids={},out=[];
+    BUILTIN_SCRIPTS.forEach(b=>{ids[b.id]=1;const o=ov[b.id];if(o&&o.hidden)return;out.push({id:b.id,g:b.g,title:(o&&o.title)||b.title,body:(o&&o.body)||b.body,builtin:true,edited:!!(o&&(o.title||o.body))});});
+    Object.entries(ov).sort((a,b)=>(a[1].at||0)-(b[1].at||0)).forEach(([id,x])=>{if(!ids[id]&&!x.hidden)out.push({id,g:'custom',title:x.title,body:x.body});});
+    return out;
+}
 function vScripts(){
-    const list=Object.entries(cfg.scripts||{}).sort((a,b)=>(a[1].at||0)-(b[1].at||0));
-    let h=`<div class="nh-hero"><div class="nh-eyebrow">Know these cold</div><div class="nh-big">Scripts &amp; <em>word tracks</em></div><div class="nh-sub">Read them, say them out loud, and role play them with your trainer until you do not need the page.</div></div>`;
+    const list=scriptList(),qz=(data.quiz&&data.quiz.psc)||null,hidden=BUILTIN_SCRIPTS.filter(b=>(cfg.scripts||{})[b.id]&&cfg.scripts[b.id].hidden);
+    let h=`<div class="nh-hero"><div class="nh-eyebrow">Know these cold</div><div class="nh-big">Scripts &amp; <em>word tracks</em></div><div class="nh-sub">The Perfect Service Call, the word tracks and the objection responses. Read them, say them out loud, and role play them with your trainer until you do not need the page.</div>
+        <div class="nh-stats" style="grid-template-columns:1fr 1fr"><div class="nh-stat"><b>${list.length}</b><span>Scripts</span></div><div class="nh-stat"><b>${qz?qz.best+' / '+qz.total:'—'}</b><span>Quiz best score</span></div></div>
+        <div style="margin-top:14px"><button class="btn btn-red" onclick="startQuiz()">${qz?'Retake the quiz':'Take the Perfect Service Call quiz'}</button></div></div>`;
+    if(draft.quiz)return h+vQuiz();
     if(isMgr()){
         h+=`<div class="card"><div class="sec-label">${editScript?'Edit script':'Add a script'}</div>
-            <div class="field"><label>Title</label><input type="text" placeholder="e.g. Perfect Service Call, Introduction, Agenda, Word Tracks" value="${dv('sc_title')}" oninput="D('sc_title',this.value)"></div>
-            <div class="field"><label>The script</label><textarea style="min-height:180px" placeholder="Paste or type it exactly how you want it said" oninput="D('sc_body',this.value)">${dv('sc_body')}</textarea></div>
-            <button class="btn btn-red" onclick="saveScript()">${editScript?'Save changes':'Add script'}</button>${editScript?` <button class="btn" onclick="editScript=null;delete draft.sc_title;delete draft.sc_body;render()">Cancel</button>`:''}</div>`;
+            <div class="field"><label>Title</label><input type="text" placeholder="e.g. Membership pitch, Financing word track" value="${dv('sc_title')}" oninput="D('sc_title',this.value)"></div>
+            <div class="field"><label>The script</label><textarea style="min-height:200px" placeholder="Paste or type it exactly how you want it said" oninput="D('sc_body',this.value)">${dv('sc_body')}</textarea></div>
+            <button class="btn btn-red" onclick="saveScript()">${editScript?'Save changes':'Add script'}</button>${editScript?` <button class="btn" onclick="editScript=null;delete draft.sc_title;delete draft.sc_body;render()">Cancel</button>`:''}
+            <p class="nh-sub" style="margin-top:10px">Edit any script below to put it in your own words. Your version replaces the built-in one for every location, and Reset brings the original back.</p></div>`;
     }
-    h+=list.length?list.map(([id,x])=>`<div class="nh-week ${openWeeks['s'+id]?'open':''}"><div class="nh-week-h" onclick="openWeeks['s${id}']=!${!!openWeeks['s'+id]};render()"><div class="nh-week-n">${esc(x.title||'Untitled')}</div><div style="color:var(--muted);font-size:12px">${openWeeks['s'+id]?'▴':'▾'}</div></div>
-        <div class="nh-week-b"><div class="nh-script">${esc(x.body||'')}</div>${isMgr()?`<div style="margin:10px 0 6px;display:flex;gap:8px"><button class="nh-mini" onclick="startEditScript('${id}')">Edit</button><button class="nh-mini" onclick="delScript('${id}')">Delete</button></div>`:''}</div></div>`).join('')
-        :`<div class="card"><p class="nh-sub" style="margin:0">${isMgr()?'No scripts yet. Add the Perfect Service Call, the introduction, the agenda and your word tracks above.':'Your manager has not added the scripts yet. Ask your trainer for the Perfect Service Call in the meantime.'}</p></div>`;
+    const groups=SCRIPT_GROUPS.concat([['custom','Added by your manager']]);
+    groups.forEach(([g,label])=>{
+        const its=list.filter(x=>x.g===g);if(!its.length)return;
+        h+=`<div class="sec-label" style="margin-top:22px">${label}</div>`;
+        its.forEach(x=>{const k='s'+x.id,op=!!openWeeks[k];
+            h+=`<div class="nh-week ${op?'open':''}"><div class="nh-week-h" onclick="openWeeks['${k}']=!${op};render()"><div class="nh-week-n" style="font-size:20px">${esc(x.title)}</div><div style="color:var(--muted);font-size:12px">${op?'▴':'▾'}</div></div>
+                <div class="nh-week-b"><div class="nh-script">${esc(x.body||'')}</div>${isMgr()?`<div style="margin:12px 0 6px;display:flex;gap:8px;flex-wrap:wrap"><button class="nh-mini" onclick="startEditScript('${x.id}')">Edit</button>${x.builtin&&x.edited?`<button class="nh-mini" onclick="resetScript('${x.id}')">Reset to original</button>`:''}<button class="nh-mini" onclick="delScript('${x.id}')">${x.builtin?'Hide':'Delete'}</button></div>`:''}</div></div>`;});
+    });
+    if(isMgr()&&hidden.length)h+=`<div class="card" style="margin-top:18px"><div class="sec-label">Hidden scripts</div>${hidden.map(b=>`<div class="nh-contact"><div style="flex:1" class="nh-log-date">${esc(b.title)}</div><button class="nh-mini" onclick="resetScript('${b.id}')">Show again</button></div>`).join('')}</div>`;
     return h;
 }
+function vQuiz(){
+    const done=!!draft.qdone;let score=0;
+    let h=`<div class="card"><div class="sec-label">Perfect Service Call quiz <span style="color:var(--text)">${PSC_QUIZ.length} questions</span></div>`;
+    PSC_QUIZ.forEach((x,i)=>{const pick=draft['q'+i];if(pick===x.a)score++;
+        h+=`<div class="nh-q"><div class="nh-q-t">${i+1}. ${esc(x.q)}</div>${((draft.qperm&&draft.qperm[i])||x.o.map((o,k)=>k)).map(oi=>{const o=x.o[oi];
+            const cls=done?(oi===x.a?'right':(pick===oi?'wrong':'')):(pick===oi?'pick':'');
+            return `<button type="button" class="nh-q-o ${cls}" ${done?'disabled':''} onclick="D('q${i}',${oi});render()">${esc(o)}</button>`;}).join('')}
+            ${done?`<div class="nh-q-why ${pick===x.a?'ok':'bad'}">${pick===x.a?'✓ Correct. ':'✕ '}${esc(x.why)}</div>`:''}</div>`;});
+    const answered=PSC_QUIZ.filter((x,i)=>draft['q'+i]!=null).length;
+    h+=done?`<div class="nh-hero" style="margin:14px 0 0"><div class="nh-eyebrow">Your score</div><div class="nh-big"><em>${score}</em> of ${PSC_QUIZ.length}</div><div class="nh-sub">${score===PSC_QUIZ.length?'Perfect. You know the process.':score>=PSC_QUIZ.length-2?'Close. Read the steps you missed and take it again.':'Go back through the 9 steps, then take it again.'}</div>
+            <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-red" onclick="startQuiz()">Take it again</button><button class="btn" onclick="draft.quiz=0;render();window.scrollTo({top:0})">Back to the scripts</button></div></div>`
+        :`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px"><button class="btn btn-red" onclick="gradeQuiz()">Check my answers</button><button class="btn" onclick="draft.quiz=0;render()">Cancel</button><span class="nh-sub" style="margin:0">${answered} of ${PSC_QUIZ.length} answered</span></div>`;
+    return h+'</div>';
+}
+/* answer order is reshuffled on every attempt so "always pick the second one" does not work */
+function startQuiz(){draft.quiz=1;draft.qdone=0;PSC_QUIZ.forEach((x,i)=>delete draft['q'+i]);
+    draft.qperm=PSC_QUIZ.map(x=>{const a=x.o.map((o,k)=>k);for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;});
+    render();window.scrollTo({top:0});}
+function gradeQuiz(){
+    const n=PSC_QUIZ.filter((x,i)=>draft['q'+i]!=null).length;
+    if(n<PSC_QUIZ.length){alertMsg('Answer all '+PSC_QUIZ.length+' questions first. '+(PSC_QUIZ.length-n)+' left.');return;}
+    const score=PSC_QUIZ.filter((x,i)=>draft['q'+i]===x.a).length,old=(data.quiz&&data.quiz.psc)||{};
+    draft.qdone=1;
+    db.ref(base()+'/quiz/psc').set({score,total:PSC_QUIZ.length,best:Math.max(score,old.best||0),tries:(old.tries||0)+1,at:Date.now()});
+    render();window.scrollTo({top:0});
+}
 function saveScript(){if(!isMgr())return;const t=(draft.sc_title||'').trim(),b=(draft.sc_body||'').trim();if(!t||!b){alertMsg('Give it a title and the script text.');return;}
-    if(editScript)db.ref('newHireConfig/scripts/'+editScript).update({title:t,body:b});else db.ref('newHireConfig/scripts').push({title:t,body:b,at:Date.now()});
+    if(editScript)db.ref('newHireConfig/scripts/'+editScript).update({title:t,body:b,hidden:null});else db.ref('newHireConfig/scripts').push({title:t,body:b,at:Date.now()});
     editScript=null;delete draft.sc_title;delete draft.sc_body;render();}
-function startEditScript(id){const x=(cfg.scripts||{})[id];if(!x)return;editScript=id;draft.sc_title=x.title||'';draft.sc_body=x.body||'';render();window.scrollTo({top:0});}
-function delScript(id){if(isMgr())db.ref('newHireConfig/scripts/'+id).remove();}
+function startEditScript(id){const x=scriptList().find(q=>q.id===id);if(!x)return;editScript=id;draft.sc_title=x.title||'';draft.sc_body=x.body||'';render();window.scrollTo({top:0});}
+function delScript(id){if(!isMgr())return;if(BUILTIN_SCRIPTS.some(b=>b.id===id))db.ref('newHireConfig/scripts/'+id).update({hidden:true});else db.ref('newHireConfig/scripts/'+id).remove();}
+function resetScript(id){if(isMgr())db.ref('newHireConfig/scripts/'+id).remove();}
 
 /* ── WELCOME: expectations, 30-60-90 goals, who to know, dispatch, uniforms ── */
 function vWelcome(){
@@ -524,15 +987,15 @@ function vMgr(){
     if(allNH===null)return '<div class="card"><p class="nh-sub" style="margin:0">Loading…</p></div>';
     const t=today(),all=Object.keys(allNH).filter(id=>people[id]&&allNH[id].profile&&TRACKS[allNH[id].profile.track]).map(id=>{
         const d=allNH[id],tk=d.profile.track,day=(d.checklist&&d.checklist[t])||{},w=last7(d),lk=Object.keys(d.log||{}).sort().pop(),c=counts(d,tk);
-        return {id,name:people[id].name,tk,wk:weekNow(d),c,cn:checkCount(day),doneAt:day._doneAt,last:lk,w,st:streak(d),ci:lastCheckin(d),g:grad(d)};
+        return {id,name:people[id].name,tk,wk:weekNow(d),c,cn:checkCount(day),doneAt:day._doneAt,last:lk,w,st:streak(d),ci:lastCheckin(d),g:grad(d),qz:(d.quiz&&d.quiz.psc)||null};
     }).sort((a,b)=>(a.name<b.name?-1:1));
     const rows=all.filter(r=>!r.g),grads=all.filter(r=>r.g),old=k=>k<dk(new Date(Date.now()-7*864e5));
     let h=`<div class="card"><div class="sec-label">New hires at this location <span style="color:var(--text)">${rows.length}</span></div>`;
-    h+=rows.length?`<div class="nh-scroll"><table class="nh-tbl"><tr><th>Name</th><th>Role</th><th>Week</th><th>Signed off</th><th>Learned</th><th>Checklist today</th><th>Streak</th><th>Last log</th><th>Last check-in</th><th>7-day reviews</th><th>7-day doors</th></tr>${rows.map(r=>{
+    h+=rows.length?`<div class="nh-scroll"><table class="nh-tbl"><tr><th>Name</th><th>Role</th><th>Week</th><th>Signed off</th><th>Learned</th><th>Checklist today</th><th>Streak</th><th>Last log</th><th>Last check-in</th><th>PSC quiz</th><th>7-day reviews</th><th>7-day doors</th></tr>${rows.map(r=>{
         const cl=r.doneAt?`<span class="ok">✓ ${new Date(r.doneAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</span>`:`<span class="${r.cn?'warn':'bad'}">${r.cn} / ${CHECKLIST.length}</span>`;
         const ll=r.last?(r.last===t?'<span class="ok">Today</span>':`<span class="${r.last<dk(new Date(Date.now()-2*864e5))?'bad':'warn'}">${nice(r.last)}</span>`):'<span class="bad">Never</span>';
         const ci=r.ci?`<span class="${old(r.ci)?'warn':'ok'}">${nice(r.ci)}</span>`:'<span class="bad">None</span>';
-        return `<tr class="row" onclick="viewPerson('${r.id}')"><td><b>${esc(r.name)}</b></td><td>${esc(TRACKS[r.tk].name)}</td><td>${r.wk||'—'}</td><td><b>${pct(r.c.signed,r.c.total)}%</b></td><td>${pct(r.c.learned,r.c.total)}%</td><td>${cl}</td><td>${r.st}</td><td>${ll}</td><td>${ci}</td><td>${r.w.r}</td><td>${r.w.dr}</td></tr>`;}).join('')}</table></div><p class="nh-sub" style="margin-top:12px">Tap a name to open their training plan, sign items off and write a check-in.</p>`
+        return `<tr class="row" onclick="viewPerson('${r.id}')"><td><b>${esc(r.name)}</b></td><td>${esc(TRACKS[r.tk].name)}</td><td>${r.wk||'—'}</td><td><b>${pct(r.c.signed,r.c.total)}%</b></td><td>${pct(r.c.learned,r.c.total)}%</td><td>${cl}</td><td>${r.st}</td><td>${ll}</td><td>${ci}</td><td>${r.qz?`<span class="${r.qz.best===r.qz.total?'ok':'warn'}">${r.qz.best} / ${r.qz.total}</span>`:'<span style="color:var(--muted)">—</span>'}</td><td>${r.w.r}</td><td>${r.w.dr}</td></tr>`;}).join('')}</table></div><p class="nh-sub" style="margin-top:12px">Tap a name to open their training plan, sign items off and write a check-in.</p>`
         :'<p class="nh-sub" style="margin:0">Nobody at this location is in a program right now.</p>';
     h+='</div>';
     if(grads.length)h+=`<div class="card"><div class="sec-label">Graduated <span style="color:var(--text)">${grads.length}</span></div>${grads.map(r=>`<div class="nh-contact" style="cursor:pointer" onclick="viewPerson('${r.id}')"><div style="flex:1"><div class="nh-log-date">🎓 ${esc(r.name)}</div><div class="nh-log-nums">${esc(TRACKS[r.tk].name)} · graduated ${niceTs(r.g)}</div></div></div>`).join('')}</div>`;
